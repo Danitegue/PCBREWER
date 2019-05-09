@@ -1,9 +1,7 @@
 @echo off
 rem *********************************************************************************************
-rem Use the variables in this section to configure the execution of the Brewer program in PCBASIC
-rem Example of Launcher for Brewer 185 with brewer software v410, online mode.
+rem Example of Launcher for running the Brewer Software into PCBASIC, for brewer instrument number 185, in online mode.
 rem *********************************************************************************************
-rem setlocal
 rem PCBASIC_PATH is the path in which the main.py file of pcbasic is located (if installed with pip, it should be in C:\Python27\Lib\site-packages\pcbasic)
 set PCBASIC_PATH=C:\Python27\Lib\site-packages\pcbasic
 
