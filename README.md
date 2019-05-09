@@ -45,9 +45,9 @@ Ensure that the "add python to the enviroment variables" option is enabled, whil
 pip install pcbasic
 ```
 
-* Download all the contents of this repository (or clone them with git clone https://github.com/Danitegue/PCBREWER)
+* Download all the contents of this repository to your PC (or clone them with git clone https://github.com/Danitegue/PCBREWER)
 
-* Check that the pcbasic works alone (without loading any software on it), by using the launcher "Launcher_pcbasic".
+* Check that the pcbasic works alone (without loading any software on it), by running the launcher "Launcher_pcbasic".
 
 * Make a copy of the desired brewer launcher (Windows or Linux, online or offline), and configure it accordingly to your system paths, com ports, and brewer software location. 
 
