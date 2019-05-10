@@ -58,7 +58,7 @@ git clone https://github.com/Danitegue/PCBREWER
 
 
 ## Troubleshooting
-**Cannot run PCBASIC, even without any program loaded"**
+**Cannot run PCBASIC, even without any program loaded:**
 * Ensure that you have selected the option "add python to the enviroment variables" option while installing python.
 
 
