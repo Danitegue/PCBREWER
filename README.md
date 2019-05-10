@@ -58,11 +58,11 @@ git clone https://github.com/Danitegue/PCBREWER
 
 
 ## Troubleshooting
-* **Cannot run PCBASIC, even without any program loaded"**
+**Cannot run PCBASIC, even without any program loaded"**
 * Ensure that you have selected the option "add python to the enviroment variables" option while installing python.
 
 
-* **The shell command opened by the launchers is closed suddenly:**
+**The shell command opened by the launchers is closed suddenly:**
 * Open a windows/linux console, and run the launcher from it, instead of double clicking in the launcher. This console wont be closed when the program crash, so it can be seen where is the problem.
 * Ensure that the folder set in the launchers to store the PCBASIC session log file exists (by default in LOG_DIR=C:\Temp\). Otherwise PCBASIC won't run.
 * Most of the problems can be identified by reading the PCBASIC session log file (by default in C:\Temp\pcbasic_brewer_log.txt). 
