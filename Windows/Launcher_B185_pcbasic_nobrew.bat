@@ -17,9 +17,13 @@ set MOUNT_D=
 rem Set the name of the BASIC program to run (For brewer soft, main.asc)
 set PROGRAM=main.asc
 
-rem COM_PORT is the identifier of the port in which the brewer is connected, for example "COM_PORT=PORT:COM8" or "COM_PORT=stdio:" for a dummy port.
+rem Set here the com ports binding: Which phisical COM port is going to be binded to each PCBASIC virtual com port.
+rem for example "COM_PORT_1=PORT:COM14" will bind the real COM14 port of the pc, to the PCBASIC com1.
+rem One can use "COM_PORT_2=stdio:" for binding a dummy port into the PCBASIC com2.
+rem Note: the brewer software must be configured to talk with the corresponding virtual port.
 rem Note: for brewer soft v375, it is needed to have at least a dummy port set, even running in nobrew mode.
-set COM_PORT=stdio:
+set COM_PORT_1=stdio:
+set COM_PORT_2=stdio:
 
 rem Set the directory in which is going to be saved the PCBASIC session log file. This directory must exist, otherwise PCBASIC will crash.
 set LOG_DIR=C:\Temp
@@ -56,7 +60,7 @@ PROMPT Brewer $P$G
 
 
 rem * Run the Brewer software with PCBASIC
-%PYTHON_DIR%\python.exe -m pcbasic --interface=sld2 --mount=Z:.,C:%MOUNT_C%,D:%MOUNT_D% --current-device=Z --com1=%COM_PORT% --run=%PROGRAM% --quit=False -f=10 --shell="python %BRWFUNCT_DIR%\Brw_functions.py" --debug=False --logfile=%LOG_DIR%\pcbasic_brewer_log.txt
+%PYTHON_DIR%\python.exe -m pcbasic --interface=sld2 --mount=Z:.,C:%MOUNT_C%,D:%MOUNT_D% --current-device=Z --com1=%COM_PORT_1% --com2=%COM_PORT_2% --run=%PROGRAM% --quit=False -f=10 --shell="python %BRWFUNCT_DIR%\Brw_functions.py" --debug=False --logfile=%LOG_DIR%\pcbasic_brewer_log.txt
 
 
 rem * On exit, undo the changes what were done above
