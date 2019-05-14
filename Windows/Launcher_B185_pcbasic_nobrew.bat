@@ -28,9 +28,11 @@ set COM_PORT_2=stdio:
 rem Set the directory in which is going to be saved the PCBASIC session log file. This directory must exist, otherwise PCBASIC will crash.
 set LOG_DIR=C:\Temp
 
+rem Brewer instrument ID: for example ID=185. This is for having an identifier in the filename of the PCBASIC session log file 
+set ID=185
+
 rem BRWFUNCT_DIR is the folder in which the Brw_functions.py is located:
 set BRWFUNCT_DIR=C:\PCBREWER
-
 rem ---------NEEDED ENVIROMENT VARIABLES FOR BREWER PROGRAM: BREWDIR AND NOBREW:----------
 
 rem Set the BREWDIR enviroment variable: where to find the main.asc respect the pcbasic mounted drives (full path)
@@ -60,7 +62,7 @@ PROMPT Brewer $P$G
 
 
 rem * Run the Brewer software with PCBASIC
-%PYTHON_DIR%\python.exe -m pcbasic --interface=sld2 --mount=Z:.,C:%MOUNT_C%,D:%MOUNT_D% --current-device=Z --com1=%COM_PORT_1% --com2=%COM_PORT_2% --run=%PROGRAM% --quit=False -f=10 --shell="python %BRWFUNCT_DIR%\Brw_functions.py" --debug=False --logfile=%LOG_DIR%\pcbasic_brewer_log.txt
+%PYTHON_DIR%\python.exe -m pcbasic --interface=sld2 --mount=Z:.,C:%MOUNT_C%,D:%MOUNT_D% --current-device=Z --com1=%COM_PORT_1% --com2=%COM_PORT_2% --run=%PROGRAM% --quit=False -f=10 --shell="python %BRWFUNCT_DIR%\Brw_functions.py" --debug=False --logfile=%LOG_DIR%\pcbasic_brewer_log_%ID%.txt
 
 
 rem * On exit, undo the changes what were done above
