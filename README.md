@@ -34,7 +34,7 @@ Principal collaborators: Nestor Morales, Alberto Redondas Marrero, Juan Javier L
 
 ## Instructions
 
-You will need to have already installed a copy of the brewer software (for now only v3.75, 3.77, and 4.10 has been tested in PCBASIC). Recommendation: To prevent headaches, be sure that the copy of the brewer software is functional (by running it with either GWBASIC, or DOSBOX emulators), before testing it with PCBASIC. (To ensure that all the files, like the OP_ST.FIL and OP_ST.III files are correctly configured)
+You will need to have already installed a copy of the brewer software (for now only v3.75, 3.77, and 4.10 has been tested in PCBASIC). If you don't have it, you can download if from here: http://www.io3.ca/index.php?id=1050 . Recommendation: To prevent headaches, be sure that the copy of the brewer software is functional (by running it with either GWBASIC, or DOSBOX emulators), before testing it with PCBASIC. (To ensure that all the files, like the OP_ST.FIL and OP_ST.III files are correctly configured)
 
 * Download and install python 2.7.16 -> Installer here: https://www.python.org/downloads/release/python-2716/
 (PCBASIC is supposed to be also compatible with Python 3.x, but I have not tested it with brewers connected yet).
