@@ -52,6 +52,10 @@ set CURR_DIR=%CD%
 rem add to the pythonpath the pcbasic dir, for being able to look for the needed libraries.
 set PYTHONPATH=%PYTHONPATH%;%PCBASIC_PATH%
 
+rem get the isodate to write it into the pcbasic log filename
+for /f "delims=" %%a in ('powershell get-date -format "{yyyyMMddTHHmmssZ}"') do set isodate=%%a
+
+
 rem Change the current path to the Brewer program directory to ensure correct operation (full path)
 cd %BREWDIR%
 
@@ -62,7 +66,7 @@ PROMPT Brewer $P$G
 
 
 rem * Run the Brewer software with PCBASIC
-%PYTHON_DIR%\python.exe -m pcbasic --interface=sld2 --mount=Z:.,C:%MOUNT_C%,D:%MOUNT_D% --current-device=Z --com1=%COM_PORT_1% --com2=%COM_PORT_2% --run=%PROGRAM% --quit=False -f=10 --shell="python %BRWFUNCT_DIR%\Brw_functions.py" --debug=False --logfile=%LOG_DIR%\pcbasic_brewer_log_%ID%.txt
+%PYTHON_DIR%\python.exe -m pcbasic --interface=sld2 --mount=Z:.,C:%MOUNT_C%,D:%MOUNT_D% --current-device=Z --com1=%COM_PORT_1% --com2=%COM_PORT_2% --run=%PROGRAM% --quit=False -f=10 --shell="python %BRWFUNCT_DIR%\Brw_functions.py" --debug=False --logfile=%LOG_DIR%\pcbasic_brewer_log_%ID%_%isodate%.txt
 
 
 rem * On exit, undo the changes what were done above
