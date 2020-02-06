@@ -64,6 +64,8 @@ PROMPT Brewer $P$G
 
 @echo on
 
+rem set the date in the OP_ST file before launching the software:
+%PYTHON_DIR%\python.exe %BRWFUNCT_DIR%\Brw_functions.py setdate
 
 rem * Run the Brewer software with PCBASIC
 %PYTHON_DIR%\python.exe -m pcbasic --interface=sld2 --mount=Z:.,C:%MOUNT_C%,D:%MOUNT_D% --current-device=Z --com1=%COM_PORT_1% --com2=%COM_PORT_2% --run=%PROGRAM% --quit=False -f=10 --shell="python %BRWFUNCT_DIR%\Brw_functions.py" --debug=False --logfile=%LOG_DIR%\pcbasic_brewer_log_%ID%_%isodate%.txt
