@@ -1,25 +1,40 @@
 # -*- coding: utf-8 -*-
 
-#Brewer Instrument COM port simulator
-#Written by Daniel Santana
+# Brewer Instrument Simulator
+# Daniel Santana
 
-# This script can be used to simulate the COM port answers of Brewer Instrument.
-# It is needed to have installed the com0com software, and configure on it a bridge between com14 and com15 bridge (for example).
-# The Brewer software will connect to the simulated instrument through the com14. (It is needed to configure the COM port in the IOF accordingly)
-# The simulator will be connected to COM15
-# the com0com will redirect all commands sent to COM14 to COM15, and all answers sent to COM15 to COM14.
+# This script can be used to simulate the COM port answers of a Brewer Instrument.
+# It is useful to know what the software is requesting to do to the Brewer, and also to know what a real Brewer would answer.
+#
+# the easiest way to run this program is creating a .bat file, with the following content:
+# "python Brw_simulator.py"
+# and then run directly it by double click on it.
 
-# com0com tutorial:
-# https://www.hobbielektronika.hu/forum/getfile.php?id=122809
-# https://sourceforge.net/projects/com0com/
-
-#the easiest way to run this program is creating a .bat file, with the following content:
-#python Brw_simulator.py
-#and then run directly it by double click on it.
+#Requirements:
+# 1 - A Bridge of virtual com ports:
+#     It is needed to have installed a software to create a bridge of com ports in the pc,
+#     and configure a bridge between COM14 and COM15 (for example). So,
+#     The Brewer software will be connecting to COM14. (It is needed to configure the COM port in the IOF accordingly)
+#     and the Brewer simulator will be connected to COM15.
+#     the com ports bridge will redirect all commands sent from one port to the other, and vice versa.
+#
+#     For windows: One possible software to create a pair of bridge virtual ports is "com0com"
+#     Download here: https://sourceforge.net/projects/com0com/
+#     Manual here: http://com0com.sourceforge.net/doc/UsingCom0com.pdf
+#     Once installed, run the com0com configurator, and run:
+#       "install PortName=COM14 PortName=COM15".
+#       If it does not work, run "list" to list all the bridge devices installed,
+#       and then remove all of them with "remove x" (being x the CNCAx pair), then install the desired pair again.
+#
+# 2 - python 2.x (3.x might work, but I have not tested it). Remember to select the option "add python to system path" when installing.
+# 3 - numpy package for python. It can be installed by running "pip install numpy" in a cmd console.
+# 4 - pyserial package for python. It can be installed by running "pip install pyserial" in a cmd console.
 
 
 
 #----------------
+
+
 import time
 import warnings
 import serial
@@ -630,7 +645,7 @@ class Brewer_simulator:
                                     self.logger.info('Writing answer to com port:'+str(answer))
                                     self.logger.info('--------------------------')
                                     if len(answer)==0:
-                                        print "lala"
+                                        self.logger.warning('len(answer)==0!!!!')
                                     for a in answer:
                                         if 'wait' in a:
                                             time.sleep(float(a.split('wait')[1]))
@@ -650,7 +665,7 @@ class Brewer_simulator:
                         except KeyboardInterrupt:
                             sw.close()
                             #ctrl+c
-                            print("Exiting")
+                            self.logger.info('-------Exiting--------')
                             break
                     else:
                         time.sleep(0.1) #General loop timer
