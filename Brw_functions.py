@@ -17,7 +17,7 @@
 #-If we have a BASIC code like: SHELL "md C:\Temporal\Newfolder"
 #-What PCBASIC will send to the system shell: "python Brw_functions.py md C:\Temporal\Newfolder"
 #-The Brw_fuctions.py will analyze the following arguments ["md","C:\Temporal\Newfolder"] and will use the appropiate
-# function to solve the order.
+# function to perform the request.
 
 
 import sys
@@ -26,6 +26,12 @@ import datetime
 import time
 import subprocess
 import glob
+import platform
+
+try:
+    python_version=platform.python_version_tuple()
+except:
+    raise("No python detected")
 
 
 
@@ -77,7 +83,8 @@ def shell_copy(orig, dest):
     orig = orig.strip()
     dest = dest.strip()
     dest_temp = dest + ".tmp"
-    if "+" in orig:
+
+    if "+" in orig: #Case of oopy with append
 
         # Example: 'copy file1+file2 destination'
         files_to_append = orig.split("+")
@@ -91,7 +98,7 @@ def shell_copy(orig, dest):
                         while True:
                             char = fi.read(1)
                             if not char: break
-                            if char == '\x1a': continue
+                            if char == b'\x1a': continue #Do not copy SUB character
                             ft.write(char)
                 else:
                     sys.stdout.write("Brw_functions.py, shell_copy (with append), skipping file " + path_i + ", because it doesn't exist." + " \r\n")
@@ -107,7 +114,7 @@ def shell_copy(orig, dest):
                 sys.stdout.write("Brw_functions.py, shell_copy (with append), could not generate the destination file because the concatenation gave an empty file." + " \r\n")
         #Finally, delete the temporal destination file.
         os.remove(dest_temp)
-    else:
+    else: #Case of copy without append
         # Case: 'copy file1 destination':
         if os.path.exists(orig): #This will raise an error if file1 does not exist.
             with open(dest_temp, "wb") as ft: # This will create a new temporal destination file, without eof chars.
@@ -115,7 +122,7 @@ def shell_copy(orig, dest):
                     while True:
                         char=fi.read(1)
                         if not char: break
-                        if char == '\x1a': continue
+                        if char == b'\x1a': continue #Do not copy SUB character
                         ft.write(char)
 
             # The final destination file will be created only if temporal destination file is not empty.
@@ -198,7 +205,7 @@ def shell_noeof(file):
                     while True:
                         char=fi.read(1)
                         if not char: break
-                        if char == '\x1a': continue
+                        if char == b'\x1a': continue #Do not copy SUB character
                         fo.write(char)
             sys.stdout.write("Brw_functions.py, shell_noeof, file saved at: " + str(fout_dir) + " \r\n")
         else:
@@ -314,5 +321,6 @@ try:
 
 
 except Exception as e:
-    sys.stdout.write(str(e))
+    sys.stdout.write("Exception happened in Brw_functions: "+str(e))
+
 
