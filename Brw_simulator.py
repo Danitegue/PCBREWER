@@ -44,7 +44,13 @@ import sys
 import numpy as np
 from copy import deepcopy
 from random import random as rand
+import platform
 #import datetime
+
+try:
+    python_version=[int(i) for i in platform.python_version_tuple()] #For example [2,8,17]
+except:
+    raise("No python detected")
 
 
 class Brewer_simulator:
@@ -191,70 +197,6 @@ class Brewer_simulator:
         self.BC['brewer_something'] = ['\r','\n', '\x00', '\x00', '\x00', '\x00', '\x00', '\x00', '\r','\n', '\x00', '\x00', '\x00', '\x00', '\x00', '\x00', '->', '\x20', 'flush']
         self.bsl=len(self.BC['brewer_something']) #Brewer something length
 
-        # self.BC['HPdict'] = {
-        #           'M,9, 0;': 66347,
-        #           'M,9, 10;': 96514,
-        #           'M,9, 20;': 127847,
-        #           'M,9, 30;': 159928,
-        #           'M,9, 40;': 190187,
-        #           'M,9, 50;': 215028,
-        #           'M,9, 60;': 227272,
-        #           'M,9, 70;': 230169,
-        #           'M,9, 80;': 230486,
-        #           'M,9, 90;': 231098,
-        #           'M,9, 100;': 229171,
-        #           'M,9, 110;': 217183,
-        #           'M,9, 120;': 190595,
-        #           'M,9, 130;': 159295,
-        #           'M,9, 140;': 128684,
-        #           'M,9, 150;': 97926,
-        #           'M,9, 160;': 64454}
-        #
-        # #HG commands like 'O:M,10,50:M,9,50:R' or 'O:M,10,50&M,9,50:R'
-        # self.BC['HGdict0'] = {'HGdict':0,
-        #           'O:M,10,50:M,9,50:R':451,
-        #           'O:M,10,60:M,9,60:R':822,
-        #           'O:M,10,70:M,9,70:R':2955,
-        #           'O:M,10,80:M,9,80:R':16681,
-        #           'O:M,10,90:M,9,90:R':35602,
-        #           'O:M,10,100:M,9,100:R':52238,
-        #           'O:M,10,110:M,9,110:R':70289,
-        #           'O:M,10,120:M,9,120:R':90096,
-        #           'O:M,10,130:M,9,130:R':109954,
-        #           'O:M,10,140:M,9,140:R':121203,
-        #           'O:M,10,150:M,9,150:R':123202,
-        #           'O:M,10,160:M,9,160:R':117150,
-        #           'O:M,10,170:M,9,170:R':98919,
-        #           'O:M,10,180:M,9,180:R':80088,
-        #           'O:M,10,190:M,9,190:R':59799,
-        #           'O:M,10,200:M,9,200:R':40881,
-        #           'O:M,10,210:M,9,210:R':21490,
-        #           'O:M,10,220:M,9,220:R':4302,
-        #           'O:M,10,230:M,9,230:R':587,
-        #           'O:M,10,240:M,9,240:R':206}
-        #
-        # self.BC['HGdict1'] = {'HGdict':1,
-        #           'O:M,10,50&M,9,50:R':451,
-        #           'O:M,10,60&M,9,60:R':822,
-        #           'O:M,10,70&M,9,70:R':2955,
-        #           'O:M,10,80&M,9,80:R':16681,
-        #           'O:M,10,90&M,9,90:R':35602,
-        #           'O:M,10,100&M,9,100:R':52238,
-        #           'O:M,10,110&M,9,110:R':70289,
-        #           'O:M,10,120&M,9,120:R':90096,
-        #           'O:M,10,130&M,9,130:R':109954,
-        #           'O:M,10,140&M,9,140:R':121203,
-        #           'O:M,10,150&M,9,150:R':123202,
-        #           'O:M,10,160&M,9,160:R':117150,
-        #           'O:M,10,170&M,9,170:R':98919,
-        #           'O:M,10,180&M,9,180:R':80088,
-        #           'O:M,10,190&M,9,190:R':59799,
-        #           'O:M,10,200&M,9,200:R':40881,
-        #           'O:M,10,210&M,9,210:R':21490,
-        #           'O:M,10,220&M,9,220:R':4302,
-        #           'O:M,10,230&M,9,230:R':587,
-        #           'O:M,10,240&M,9,240:R':206}
-
     def gaussian(self,x, mu, sig):
         return np.exp(-np.power(x - mu, 2.) / (2 * np.power(sig, 2.)))
 
@@ -268,7 +210,10 @@ class Brewer_simulator:
         if fullline=="\r": #if only a carriage return:
             pass #leave as it is (keep alive packet)
         else: #if there is something more than the carriage return:
-            fullline=fullline.replace("\r","") #remove end of line
+            if len(fullline)>=2 and fullline[-2:]==":\r": #if fullline ends with ":\r"
+                pass #do not remove carriage return
+            else:
+                fullline=fullline.replace("\r","") #remove the carriage return
         #Count the number of commands sent in the same line.
         # For example: 'M,10,489:R,2,2,4:O\r' are 3 commands, move motor, measure, and get light intensity.
         ncommands=fullline.count(":")+1
@@ -633,6 +578,8 @@ class Brewer_simulator:
                             c=''
                             while c != '\r':
                                 c=sw.read(1)
+                                if python_version[0]>2:
+                                    c=c.decode("latin1") #Convert received bytes into str
                                 fullline +=c
                             if not fullline:
                                 time.sleep(0.001)
@@ -654,8 +601,10 @@ class Brewer_simulator:
                                             sw.flush()
                                         else:
                                             try:
-                                                # sio.write(unicode(a))
-                                                sw.write(a)
+                                                if python_version[0]>2:
+                                                    sw.write(a.encode("latin1")) #convert str to bytes
+                                                else:
+                                                    sw.write(a)
                                             except Exception as e:
                                                 self.logger.error("Cannot write into serial")
                         except ValueError:
