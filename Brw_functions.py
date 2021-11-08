@@ -127,7 +127,7 @@ def shell_copy(orig, dest):
 
             # The final destination file will be created only if temporal destination file is not empty.
             with open(dest_temp, "rb") as ft:
-                contents = ft.read()
+                contents = ft.read() #read the whole file
                 if len(contents) > 0:
                     with open(dest, "wb") as fd:
                         fd.write(contents)
@@ -146,6 +146,7 @@ def shell_mkdir(dir):
 
 def shell_setdate():
     #This function changes the date in the bdata\###\OP_ST.### file.
+    #It also changes the A\D board setting to 1, in that file.
     #the enviroment variable BREWDIR must exist.
     sys.stdout.write("Brw_functions.py, shell_setdate, emulating command: setdate"+" \r\n")
 
@@ -166,8 +167,8 @@ def shell_setdate():
         shell_copy(opstinstr_dir,opstinstr_bak_dir)
 
         #Open OP_ST.###
-        with open(opstinstr_dir,'rb') as f:
-            c0 = f.read() #read Contents. In binary mode for being able to detect the EOF if exist.
+        with open(opstinstr_dir,'r') as f:
+            c0 = f.read() #read Contents.
         #Detect carriage return type
         if "\r\n" in c0:
             cr="\r\n"
@@ -181,9 +182,9 @@ def shell_setdate():
         cs[6]=str(date.day).zfill(2) #Set Day 'DD'
         cs[7]=str(date.month).zfill(2)#Set Month 'MM'
         cs[8]=str(date.year)[-2:] #Set Year 'YY'
-        cs[23]='1' #Set A\D Board to '1'.
+        cs[23]=' 1' #Set A\D Board to '1'.
         c1=cr.join(cs)
-        with open(opstinstr_dir, 'wb') as f:
+        with open(opstinstr_dir, 'w') as f:
             f.write(c1) #Re-Build the modified file
         sys.stdout.write("Brw_functions.py, shell_setdate, date set in file: " +str(opstinstr_dir)+ " \r\n")
     else:
@@ -321,6 +322,6 @@ try:
 
 
 except Exception as e:
-    sys.stdout.write("Exception happened in Brw_functions: "+str(e))
+    sys.stdout.write("WARNING!!!! - Exception happened in Brw_functions: "+str(e))
 
 
