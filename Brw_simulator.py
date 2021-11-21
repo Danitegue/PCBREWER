@@ -62,7 +62,7 @@ class Brewer_simulator:
         self.Init_logger()
 
         #Parameters:
-        self.bmodel ="mkiii" #Brewer model, mkiii or mkii
+        self.bmodel ="mkii" #Brewer model, mkiii or mkii
         self.com_port = 'COM15'  # The emulator will be connected to this com port.
         self.com_baudrate = 1200  # It should be the same as in the "Head sensor-tracker connection baudrate" entry of the IOF.
         self.com_timeout = 0.2
@@ -351,11 +351,11 @@ class Brewer_simulator:
                         if self.lastL==[19414,120]:
                             ss+="move az to AZC, value: none"
                             self.logger.info(ss)
-                            answer=deepcopy(self.BC['brewer_none'])
+                            answer=['wait0.2']+deepcopy(self.BC['brewer_none'])
                         if self.lastL==[19414,255]:
                             ss+="move ze to ZEC, value: none"
                             self.logger.info(ss)
-                            answer=deepcopy(self.BC['brewer_none'])
+                            answer=['wait0.2']+deepcopy(self.BC['brewer_none'])
                     elif len(self.lastL)==4: ##for example L,20248,0,20249,255:Z
                         if [self.lastL[0],self.lastL[2],self.lastL[3]]==[20248,20249,255]: # for example: [20248,x,20249,255]:
                             x=self.lastL[1] #sensor index
@@ -363,18 +363,18 @@ class Brewer_simulator:
                             n=self.AnalogSensors[x]["name"]
                             ss+=n + ", value: "+str(v)
                             self.logger.info(ss)
-                            answer=[str(v).rjust(4)]+deepcopy(self.BC['brewer_something'])
+                            answer=['wait0.2']+[str(v).rjust(4)]+deepcopy(self.BC['brewer_something'])
                             gotkey = True
                     elif len(self.lastL)==8: #for example L,16811,5,16812,79,16813,3,16814,255
                         if self.lastL==[16811,5,16812,79,16813,3,16814,255]: #AP.rtn, communication test with AD board
                             ss+="Communication test with AD board, value: 49"
                             self.logger.info(ss)
-                            answer = ["49".rjust(4)]+deepcopy(self.BC['brewer_something'])
+                            answer = ['wait0.2']+["49".rjust(4)]+deepcopy(self.BC['brewer_something'])
                     elif len(self.lastL)==10: #for example L,16905,90,18041,14,16953,110,18057,64,16977,90
                         if self.lastL==[16905,90,18041,14,16953,110,18057,64,16977,90]: #Change tracker baudrate
                             ss+="Change tracker baudrate, value: none"
                             self.logger.info(ss)
-                            answer = deepcopy(self.BC['brewer_none'])
+                            answer = ['wait0.2']+deepcopy(self.BC['brewer_none'])
 
 
                 elif line=='T': #Re-transmit the output of the most recent non-null response
@@ -386,42 +386,42 @@ class Brewer_simulator:
                     self.logger.info('Got keyword: "?MOTOR.CLASS[2]"')
                     #answer = ['TRACKERMOTOR']+deepcopy(self.BC['brewer_something'])+['wait0.5']+deepcopy(self.BC['brewer_none'])
                     #answer = ["\r"]+['TRACKERMOTOR'] + deepcopy(self.BC['brewer_something'])
-                    answer = ['TRACKERMOTOR'] + deepcopy(self.BC['brewer_something'])
+                    answer = ['wait0.1']+['TRACKERMOTOR']+deepcopy(self.BC['brewer_something'])
                     gotkey = True
 
                 elif '?TEMP[PMT]' in line:
                     self.logger.info('Got keyworkd: "?TEMP[PMT]"')
-                    answer=['19.158888']+deepcopy(self.BC['brewer_something'])
+                    answer=['wait0.2']+['19.158888']+deepcopy(self.BC['brewer_something'])
                     gotkey = True
 
                 elif '?TEMP[FAN]' in line:
                     self.logger.info('Got keyworkd: "?TEMP[FAN]"')
-                    answer=['19.633333']+deepcopy(self.BC['brewer_something'])
+                    answer=['wait0.2']+['19.633333']+deepcopy(self.BC['brewer_something'])
                     gotkey = True
 
                 elif '?TEMP[BASE]' in line:
                     self.logger.info('Got keyworkd: "?TEMP[BASE]"')
-                    answer=['17.637777']+deepcopy(self.BC['brewer_something'])
+                    answer=['wait0.2']+['17.637777']+deepcopy(self.BC['brewer_something'])
                     gotkey = True
 
                 elif '?TEMP[EXTERNAL]' in line:
                     self.logger.info('Got keyworkd: "?TEMP[EXTERNAL]"')
-                    answer=['-37.777777']+deepcopy(self.BC['brewer_something'])
+                    answer=['wait0.2']+['-37.777777']+deepcopy(self.BC['brewer_something'])
                     gotkey = True
 
                 elif '?RH.SLOPE' in line:
                     self.logger.info('Got keyworkd: "?RH.SLOPE"')
-                    answer=['0.031088']+deepcopy(self.BC['brewer_something'])
+                    answer=['wait0.2']+['0.031088']+deepcopy(self.BC['brewer_something'])
                     gotkey = True
 
                 elif '?RH.ORIGIN' in line:
                     self.logger.info('Got keyworkd: "?RH.ORIGIN"')
-                    answer=['0.863000']+deepcopy(self.BC['brewer_something'])
+                    answer=['wait0.2']+['0.863000']+deepcopy(self.BC['brewer_something'])
                     gotkey = True
 
                 elif '?ANALOG.NOW[20]' in line:
                     self.logger.info('Got keyworkd: "?ANALOG.NOW[20]"')
-                    answer=['309']+deepcopy(self.BC['brewer_something'])
+                    answer=['wait0.2']+['309']+deepcopy(self.BC['brewer_something'])
                     gotkey = True
 
             elif ncommas==1:
@@ -458,7 +458,7 @@ class Brewer_simulator:
                         self.AnalogSensors[23]['value_mkii']=17
 
                     elif l=="2":
-                        self.logger.info('Got keyword: "B,2" -> Turn on the Quartz Halogen Lamp')
+                        self.logger.info('Got keyword: "B,2" -> Turn on the Quartz Halogen Lamp (FEL)')
                         answer=['wait0.2']+deepcopy(self.BC['brewer_none'])
                         gotkey = True
                         self.FEL_lamp=True
@@ -639,10 +639,13 @@ class Brewer_simulator:
                     #While running an HG routine:
                     if self.HG_lamp:
                         self.logger.info("In HG measurement")
+                        self.lastwvpsignal={}
                         if "R,0,7,1" in line: #initial quick scan over all wvp
                             signals=[1068,0,38,73,17035,51,22,115]
                             self.lastwvpsignal={self.lastwvpmeasured[i]:signals[i] for i in self.lastwvpmeasured}
-                        else: #check of signal at different motor[10] positions:
+                        elif "R,2,2,4" in line: #hs.rtn
+                            self.lastwvpsignal[2]=int(10*rand()) #This is simply to avoid division by zero in hs.rtn
+                        else: #HG.rtn: check of signal at different motor[10] positions:
                             #The signal with depend of the latest motor[10] position, and selected wvp. (only wvp 0 is measured)
                             mstep=self.Motors[10]['steps_fromled']
                             #gaussian multiplicator factor [0-1], centered at step 148. (Center should be between [147 to 149])
@@ -652,7 +655,6 @@ class Brewer_simulator:
                                 mult=self.gaussian(mstep,148,20) #B072, std of 20. -> adjust the std until having a correlation factor > 0.9
                             signal=int(mult*self.hglevel)
                             self.logger.info("step="+str(mstep)+", mult="+str(mult)+", signal="+str(signal))
-                            self.lastwvpsignal={}
                             for wvp in self.lastwvpmeasured: #Generate signals for each wv position:
                                 if wvp==0:
                                     self.lastwvpsignal[wvp]=deepcopy(signal)
@@ -662,15 +664,23 @@ class Brewer_simulator:
                     #While running an HP routine:
                     elif self.FEL_lamp:
                         self.logger.info("In FEL measurement")
-                        #The signal with depend of the latest motor[9] position, and selected wvp. (only wvp 6 is measured)
-                        mstep=self.Motors[9]['steps_fromled'] #in theory, while doing an HP, it usually vary from 0 to 160, in 10 steps.
-                        signal=self.FEL_signal[mstep]
                         self.lastwvpsignal={}
-                        for wvp in self.lastwvpmeasured: #Generate signals for each wv position:
-                            if wvp==6:
-                                self.lastwvpsignal[wvp]=int(signal)
-                            else:
-                                self.lastwvpsignal[wvp]=0
+                        if "R,0,7,1" in line: #SL.rtn -> initial quick scan over all wvp
+                            signals=[3747,0,35927,40439,45369,40758,32717,79062]
+                            self.lastwvpsignal={self.lastwvpmeasured[i]:signals[i] for i in self.lastwvpmeasured}
+                        elif "R,0,6,20" in line: #SL.rtn -> measurements
+                            signals=[77444,7,746834,840075,939058,846241,678921]
+                            #self.lastwvpsignal={self.lastwvpmeasured[i]:signals[i]+int(10*rand()) for i in self.lastwvpmeasured}
+                            self.lastwvpsignal={self.lastwvpmeasured[i]:signals[i] for i in self.lastwvpmeasured}
+                        else: #HP routine
+                            #The signal with depend of the latest motor[9] position, and selected wvp. (only wvp 6 is measured)
+                            mstep=self.Motors[9]['steps_fromled'] #in theory, while doing an HP, it usually vary from 0 to 160, in 10 steps.
+                            signal=self.FEL_signal[mstep]
+                            for wvp in self.lastwvpmeasured: #Generate signals for each wv position:
+                                if wvp==6:
+                                    self.lastwvpsignal[wvp]=int(signal)
+                                else:
+                                    self.lastwvpsignal[wvp]=0
 
                     #In general operation:
                     else:
@@ -795,7 +805,7 @@ class Brewer_simulator:
                                 c=sw.read(1)
                                 if python_version[0]>2:
                                     c=c.decode("latin1") #Convert received bytes into str
-                                fullline +=c
+                                fullline += c
                             if not fullline:
                                 time.sleep(0.001)
                                 continue
