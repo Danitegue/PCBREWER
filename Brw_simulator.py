@@ -62,7 +62,7 @@ class Brewer_simulator:
         self.Init_logger()
 
         #Parameters:
-        self.bmodel ="mkii" #Brewer model, mkiii or mkii
+        self.bmodel ="mkiii" #Brewer model, mkiii or mkii
         self.com_port = 'COM15'  # The emulator will be connected to this com port.
         self.com_baudrate = 1200  # It should be the same as in the "Head sensor-tracker connection baudrate" entry of the IOF.
         self.com_timeout = 0.2
@@ -75,29 +75,29 @@ class Brewer_simulator:
 
         #Misc variables
         self.lastanswer=deepcopy(self.BC['brewer_none']) #To store the last non empty answer, to be used for the "T" command
-        self.Motors_id={0:"",
-                        1:"Zenith prism",
-                        2:"Azimuth Tracker",
-                        3:"Iris",
-                        4:"Filterwheel 1",
-                        5:"Filterwheel 2",
-                        6:"Filterwheel 3",
-                        7:"",
-                        8:"",
-                        9:"Micrometer 2",
-                        10:"Micrometer 1",
-                        11:"Slitmask 1",
-                        12:"Slitmask 2",
-                        13:"Zenith Tracker",
-                        14:"",
-                        15:""
-                        }
+        #Motors
+        #id=id of the motor
+        #steps_fromled = current steps position, from the led detector
+        #zerostep = reference position, steps_fromled in which the motor will end after a reset or initialization
+        #steps_fromzero = steps_fromled - zerostep.
+        self.Motors={0:{"id":""                 ,"steps_fromled":0,"zerostep":0,"steps_fromzero":0},
+                     1:{"id":"Zenith prism"     ,"steps_fromled":0,"zerostep":0,"steps_fromzero":0},
+                     2:{"id":"Azimuth Tracker"  ,"steps_fromled":0,"zerostep":0,"steps_fromzero":0},
+                     3:{"id":"Iris"             ,"steps_fromled":0,"zerostep":0,"steps_fromzero":0},
+                     4:{"id":"Filterwheel 1"    ,"steps_fromled":0,"zerostep":0,"steps_fromzero":0},
+                     5:{"id":"Filterwheel 2"    ,"steps_fromled":0,"zerostep":0,"steps_fromzero":0},
+                     6:{"id":"Filterwheel 3"    ,"steps_fromled":0,"zerostep":0,"steps_fromzero":0},
+                     7:{"id":""                 ,"steps_fromled":0,"zerostep":0,"steps_fromzero":0},
+                     8:{"id":""                 ,"steps_fromled":0,"zerostep":0,"steps_fromzero":0},
+                     9:{"id":"Micrometer 2"     ,"steps_fromled":0,"zerostep":1733,"steps_fromzero":1733},
+                     10:{"id":"Micrometer 1"    ,"steps_fromled":0,"zerostep":1733,"steps_fromzero":1733},
+                     11:{"id":"Slitmask 1"      ,"steps_fromled":0,"zerostep":0,"steps_fromzero":0},
+                     12:{"id":"Slitmask 2"      ,"steps_fromled":0,"zerostep":0,"steps_fromzero":0},
+                     13:{"id":"Zenith Tracker"  ,"steps_fromled":0,"zerostep":0,"steps_fromzero":0},
+                     14:{"id":""                ,"steps_fromled":0,"zerostep":0,"steps_fromzero":0},
+                     15:{"id":""                ,"steps_fromled":0,"zerostep":0,"steps_fromzero":0}
+                     }
 
-
-
-        self.Motors_steps={i:0 for i in range(16)} #To store the current step counter of each motor
-        self.Motors_offsets={i:0 for i in range(16)} #To store the current zero position of each motor. (offset)
-        self.Motors_pos={i:0 for i in range(16)} #To store the real position of each motor (step counter - offset)
         self.Rp1=0 #To store the last p1 value of the last R,p1,p2,p3 command
         self.Rp2=0 #To store the last p2 value of the last R,p1,p2,p3 command
         self.Rp3=1 #To store the last p3 value of the last R,p1,p2,p3 command
@@ -105,8 +105,12 @@ class Brewer_simulator:
         self.lastwvpmeasured=[]
         self.HG_lamp=False #To store the status of the HG lamp
         self.FEL_lamp=False #To store the status of the FEL lamp
-        self.hglevel=8466 #Maximum signal in the HG routine
-        self.hplevel=230000 #Maximum signal in the HP routine
+        #Maximum signal in the HG routine
+        if self.bmodel=="mkiii":
+            self.hglevel=63888 #case of B185
+        else:
+            self.hglevel=8466 #case of B072
+        self.hplevel=230000 #Maximum signal in the HP routine (only used in mkiii)
         self.lastL=[] #To store the latest parameters queried by the L,a,b,c,d command
 
         #Sensor Answers,
@@ -140,6 +144,54 @@ class Brewer_simulator:
         self.AnalogSensors=deepcopy(self.AnalogSensors_ini) #(will vary depending if the FEL or HG lamp are on/off
         self.curr_baudrate=deepcopy(self.com_baudrate) #It may change temporarily while using re.rtn
         self.onre=False #True while the software is executing a re.rtn routine
+
+        self.Gdict={544:{0:{"id":"Micrometer at position 7 (deadtime)"      ,"status":0},
+                         1:{"id":"Slitmask at position 0 (HG calibration)"  ,"status":0},
+                         2:{"id":"Micrometer at maximum-wavelength position","status":0},
+                         3:{"id":"Micrometer at minimim-wavelength position","status":0},
+                         },
+                    800:{0:{"id":"CW switch pressed (Azimuth Tracker)"      ,"status":0},
+                         1:{"id":"CCW switch pressed (Azimuth Tracker)"     ,"status":0},
+                         2:{"id":"CW opto-sensor blocked (Azimuth Tracker)" ,"status":0},
+                         3:{"id":"CCW opto-sensor blocked (Azimuth Tracker)","status":0},
+                         4:{"id":"Zenith-prism pointing dow (active low)"   ,"status":0},
+                         6:{"id":"'Down' switch pressed (Zenith prism)"     ,"status":0},
+                         7:{"id":"'UP' switch pressed (Zenith prism)"       ,"status":0},
+                         },
+                    1056:{0:{"id":"Reserved for filterwheels 1 (not used)"    ,"status":0},
+                          1:{"id":"Reserved for filterwheels 2 (not used)"    ,"status":0},
+                          2:{"id":"Reserved for filterwheels 3 (not used)"    ,"status":0},
+                          3:{"id":"Reserved for filterwheels 4 (not used)"    ,"status":0},
+                          4:{"id":"Iris fully closed (active low)"            ,"status":0},
+                          5:{"id":"Iris fully closed (active low)"            ,"status":0},
+                          },
+                    }
+        #FEL signal template, taken from HP routine done in B185)
+        FEL_template={0:92515,
+                     10:144004,
+                     20:194406,
+                     30:253724,
+                     40:311120,
+                     50:356679,
+                     60:378288,
+                     70:380295,
+                     80:380321,
+                     90:379821,
+                     100:376203,
+                     110:353713,
+                     120:307718,
+                     130:256729,
+                     140:205321,
+                     150:152167,
+                     160:102135
+                     }
+        FEL_values=np.array(FEL_template.values(),dtype=float)
+        FEL_values_norm=FEL_values/FEL_values.max() #Normalize the values of the template between 0-1
+        FEL_values_adj=FEL_values_norm*self.hplevel #adjust the FEL signal to the desired self.hplevel
+        self.FEL_signal=dict(zip(FEL_template.keys(),FEL_values_adj)) #Build FEL signal dictionary
+
+        #--------------------------------------------------------
+        self.logger.info('Simulating brewer model: '+str(self.bmodel))
 
 
 
@@ -192,9 +244,26 @@ class Brewer_simulator:
         return np.exp(-np.power(x - mu, 2.) / (2 * np.power(sig, 2.)))
 
     def update_motor_pos(self,m):
-        self.Motors_pos[m]=self.Motors_steps[m]+self.Motors_offsets[m]
-        ss="M"+str(m)+"pos: Steps="+str(self.Motors_steps[m])+", Offset="+str(self.Motors_offsets[m])+", Realpos="+str(self.Motors_pos[m])
+        self.Motors[m]['steps_fromzero']=self.Motors[m]['steps_fromled']-self.Motors[m]['zerostep']
+        ss="M"+str(m)+"pos: from_led="+str(self.Motors[m]['steps_fromled'])+\
+           ", from_zero="+str(self.Motors[m]['steps_fromzero'])+", zero="+str(self.Motors[m]['zerostep'])
         return ss
+
+    def getGstatus(self,address):
+        #This function gets a binary code that represent the status of a subset of the instrument sensors.
+        #Then this binary code is converted and returned as a decimal value.
+        #Address can be 544,800,or 1056 (int). See Gdict for more info.
+        st=np.zeros(8) #8bits
+        stid=[]
+        for i in range(len(st)):
+            if i in self.Gdict[address]:
+                if self.Gdict[address][i]["status"]: #if status is 1
+                    st[i]=1
+                    stid.append(self.Gdict[address][i]["id"])
+        #convert binary value into decimal
+        res=int(str(st),2)
+        return res,stid
+
 
 
 
@@ -227,7 +296,7 @@ class Brewer_simulator:
 
             if line=="R": #Command R: repeat last R,p1,p2,p3 measurement
                 line="R,"+str(self.Rp1)+","+str(self.Rp2)+","+str(self.Rp3)
-                self.logger.info('Got keyword: "R", replaced by: "' +str(line)+'"')
+                self.logger.info('Got keyword: "R", replaced by the last R command: "' +str(line)+'"')
 
             ncommas=line.count(',')
 
@@ -269,7 +338,10 @@ class Brewer_simulator:
                     self.logger.info('Got keyworkd: "O" -> Get last measurement data ')
                     signals=[]
                     for wvp in self.lastwvpmeasured:
-                        signals.append(str(self.lastwvpsignal[wvp]).rjust(9))
+                        try:
+                            signals.append(str(self.lastwvpsignal[wvp]).rjust(9))
+                        except:
+                            self.logger.error("Cannot concatenate signal, self.lastwvpsignal[wvp]="+str(self.lastwvpsignal[wvp]))
                     answer = ["wait1.0"]+[",".join(signals)]+deepcopy(self.BC['brewer_something'])
                     gotkey = True
 
@@ -384,6 +456,7 @@ class Brewer_simulator:
                         self.AnalogSensors[21]['value_mkii']=20.58
                         self.AnalogSensors[22]['value_mkii']=8
                         self.AnalogSensors[23]['value_mkii']=17
+
                     elif l=="2":
                         self.logger.info('Got keyword: "B,2" -> Turn on the Quartz Halogen Lamp')
                         answer=['wait0.2']+deepcopy(self.BC['brewer_none'])
@@ -407,27 +480,54 @@ class Brewer_simulator:
                         self.AnalogSensors[8]['value_mkii']=305
                         self.AnalogSensors[8]['value_mkiii']=305
 
-                elif "G," in line: #G,544 read end stop of motor 10
-                    _,x=line.split(",")
-                    if int(x)==544:
-                        self.logger.info('Got keyword: "G,x" -> Read end stop diode of motor 10')
-                        if self.Motors_steps[10] in [501,51,67]:
-                            answer=["wait2.0"]+["   4,"]+deepcopy(self.BC['brewer_something'])
-                            gotkey = True
+                elif "G," in line: #G,544
+                    #Get command, Transmit to the terminal the byte values located at the COSMAC Input Output addresses, p1, p2, ..., pX
+                    #For example, G,544 read end stop status of motor 10. It returns a value in the range 0-255 for each byte queried.
+                    #544= Status of slit mask & micromter motors
+                    #800=Status of Zen-prism & Az-tracker motors
+                    #1056=Status of Iris & Filterwheel motors
+                    #20244-20257=A/D table (not implemented here)
+                    #16440-61447=Real-Time Clock (not implemented here)
+                    #63488-65535=Battery-backed-up Ram (not implemented here)
+                    self.logger.info('Got keyword: "G" Get data from COSMAC I/O.')
+                    Glist=line.split(",")
+                    Glist=Glist[1:]
+                    Glistansw=[]
+                    allok=True
+                    for p in Glist:
+                        if int(p)==544:
+                            self.logger.info('Address 544: Get status of Slit Mask and Micrometer motors.')
+                            res,stid=self.getGstatus(int(p))
+                            for i in stid:
+                                self.logger.info("Status enabled: "+str(i))
+                            Glistansw+=[res.rjust(4)+","]
+                        elif int(p)==800:
+                            self.logger.info('Address 800: Get status of Zen-prism and Az tracker motors.')
+                            res,stid=self.getGstatus(int(p))
+                            for i in stid:
+                                self.logger.info("Status enabled: "+str(i))
+                            Glistansw+=[res.rjust(4)+","]
+                        elif int(p)==1056:
+                            self.logger.info('Address 1056: Get status of Iris and Filterwheel motors.')
+                            res,stid=self.getGstatus(int(p))
+                            for i in stid:
+                                self.logger.info("Status enabled: "+str(i))
+                            Glistansw+=[res.rjust(4)+","]
                         else:
-                            answer=["wait5.0"]+["   0,"]+deepcopy(self.BC['brewer_something'])
-                            gotkey = True
-                    if int(x)==800:
-                        self.logger.info('Got keyword: "G,x" -> Read end stop diode of motor 2')
-                        answer=["  11,"]+deepcopy(self.BC['brewer_something'])
-                        gotkey = True
+                            self.logger.warning("Unknown G address, p="+str(p))
+                            allok=False
+                            break
+                    if allok:
+                        gotkey=True
+                        answer=["wait0.5"]+Glistansw+deepcopy(self.BC['brewer_something'])
+
+
 
                 elif "I," in line: #Initialized the specified motor to its zero position and set the corresponding step up accumulator to 0
                     _,m=line.split(",")
-                    self.Motors_steps[int(m)]=0
-                    self.Motors_offsets[int(m)]=0
+                    self.Motors[int(m)]['steps_fromled']=deepcopy(self.Motors[int(m)]['zerostep'])
                     self.update_motor_pos(int(m))
-                    self.logger.info('Got keyword: "I,m" -> Initialize motor ('+str(m)+'), to its zero position')
+                    self.logger.info('Got keyword: "I,m" -> Initialize motor ('+str(m)+'), to its zero position (zerostep='+str(self.Motors[int(m)]['zerostep'])+')')
                     answer=["wait0.5"]+deepcopy(self.BC['brewer_none'])
                     gotkey = True
 
@@ -447,23 +547,35 @@ class Brewer_simulator:
                 # for example M,m,p: Move the m motor, to the x position
                 if "M," in line:
                     _,m,p=line.split(",")
-
                     if int(p)<0:
-                        self.Motors_steps[int(m)]=self.Motors_steps[int(m)]+int(p)
-                        self.Motors_offsets[int(m)]=deepcopy(self.Motors_steps[int(m)])
-                        self.logger.info('Got keyworkd: "M,m,-p" -> Move motor '+str(m)+' ('+str(self.Motors_id[int(m)])+')'+' '+str(p)+'steps backwards.')
+                        self.Motors[int(m)]['steps_fromled']=self.Motors[int(m)]['steps_fromled']+int(p)
+                        self.Motors[int(m)]['zerostep']=deepcopy(self.Motors[int(m)]['steps_fromled'])
+                        self.logger.info('Got keyworkd: "M,m,-p" -> Move motor '+str(m)+' ('+str(self.Motors[int(m)]['id'])+')'+\
+                                         ' '+str(p)+'steps backwards and set new zerostep ('+\
+                                         str(self.Motors[int(m)]['zerostep']))
                     else:
-                        self.Motors_steps[int(m)]=int(p) #Store the last selected position of this motor
-                        self.logger.info('Got keyworkd: "M,m,p" -> Move motor '+str(m)+' ('+str(self.Motors_id[int(m)])+')'+' to step '+str(p)+'.')
+                        self.Motors[int(m)]['steps_fromled'] =int(p) #Store the last selected position of this motor
+                        self.logger.info('Got keyworkd: "M,m,p" -> Move motor '+str(m)+' ('+str(self.Motors[int(m)]['id'])+')'+\
+                                         ' to step '+str(p)+'.')
                     ss=self.update_motor_pos(int(m))
                     self.logger.info(ss)
+                    #Update Gdict status:
+                    if self.Motors[10]["steps_fromled"] in [501,51,67]:
+                        self.Gdict[544][2]["status"]=1  #Micrometer at maximum-wavelength position
+                    else:
+                        self.Gdict[544][2]["status"]=0
+
                     answer=["wait1.0"]+deepcopy(self.BC['brewer_none'])
                     gotkey = True
 
-                #Define the fill characters to be used at the start of every transmission from the Brewer to the controller,
-                #when using the TTY interface low level protocol
-                elif 'F,' in line: #For example "F,count,asscicode"
-                    #_,Fcount,Fascicode=line.split(",")
+
+                elif 'F,' in line: #For example "F,0,2"
+                    #Define the fill characters (those characters transmited as a 'header' before each output message)
+                    # to be used at the start of every transmission from the Brewer to the controller, when using the TTY interface low level protocol.
+                    # F,p1,p2. p1 = repetitions. p2 = fill character.
+                    # the default values are 6 and 0 respectively, producing 6 ascii nulls
+                    # ASCII characters: https://theasciicode.com.ar/
+                    #_,Fcount,Fascicode=line.split(",") ignore it, leave as default.
                     self.logger.info('Got keyword: "F,count,ascicode" -> Define the fill characters for low level communication')
                     answer = ["wait0.2"]+deepcopy(self.BC['brewer_none'])
                     gotkey = True
@@ -483,12 +595,29 @@ class Brewer_simulator:
                     answer = ["wait0.5"]+deepcopy(self.BC['brewer_none'])
                     gotkey = True
 
-                elif "D," in line:
-                    _,a,b=line.split(",")
-                    if [int(a),int(b)]==[2955,2956]:
-                        self.logger.info('Got keyword: "D,2955,2956", Check for UART')
-                        answer = ["wait0.5"]+["   0,   0,"]+deepcopy(self.BC['brewer_something'])
-                        gotkey = True
+                elif "D," in line: #D,2955,2956
+                    #"D,p1,p2", Dump command: Transmit to the terminal the byte values located at COSMAC memory addresses p1,p2,...,pX.
+                    #p1,p2,...,pX are 16 bit COSMAC memory addresses written as signed decimal numbers in the range -32768..32767
+                    #Values corresponding to each pX are returned in a list.
+                    self.logger.info('Got keyword: "D", Get data from COSMAC memory.')
+                    Dlist=line.split(",")
+                    Dlist=Dlist[1:]
+                    Dlistansw=[]
+                    allok=True
+                    for p in Dlist:
+                        if int(p)==2955:
+                            self.logger.info('Address 2955: Check for UART (0).')
+                            Dlistansw+=["   0,"]
+                        elif int(p)==2956:
+                            self.logger.info('Address 2956: Check for UART (1).')
+                            Dlistansw+=["   0,"]
+                        else:
+                            self.logger.warning("Unknown D address")
+                            allok=False
+                            break
+                    if allok:
+                        gotkey=True
+                        answer=["wait0.5"]+Dlistansw+deepcopy(self.BC['brewer_something'])
 
             elif ncommas==3:
 
@@ -497,6 +626,7 @@ class Brewer_simulator:
                 # p2 -Final wavelenght position: may take values from p1 to 7.
                 # p3 - repetitions: may take values from 1 to 255
                 #if there are no parameters specified, the parameters from the previous R command are used.
+                #the measurements are then read by the O, command.
                 if "R" in line:
                     _,Rp1,Rp2,Rp3=line.split(",")
                     self.Rp1=int(Rp1) #save last p1
@@ -508,33 +638,39 @@ class Brewer_simulator:
 
                     #While running an HG routine:
                     if self.HG_lamp:
+                        self.logger.info("In HG measurement")
                         if "R,0,7,1" in line: #initial quick scan over all wvp
                             signals=[1068,0,38,73,17035,51,22,115]
                             self.lastwvpsignal={self.lastwvpmeasured[i]:signals[i] for i in self.lastwvpmeasured}
                         else: #check of signal at different motor[10] positions:
                             #The signal with depend of the latest motor[10] position, and selected wvp. (only wvp 0 is measured)
-                            mstep=self.Motors_steps[10] #in theory, while doing an HG, it vary from 0 to 280.
-                            if mstep>=0: #only if the last mpos is positive: update signal.
-                                mult= self.gaussian(mstep, 148, 50) #gaussian multiplicator factor [0-1], centered at step 148, std of 50
-                                self.lastwvpsignal={}
-                                for wvp in self.lastwvpmeasured: #Generate signals for each wv position:
-                                    if wvp==0:
-                                        self.lastwvpsignal[wvp]=int(mult*self.hglevel)
-                                    else:
-                                        self.lastwvpsignal[wvp]=0
+                            mstep=self.Motors[10]['steps_fromled']
+                            #gaussian multiplicator factor [0-1], centered at step 148. (Center should be between [147 to 149])
+                            if self.bmodel=="mkiii":
+                                mult=self.gaussian(mstep,148,60) #B185, std of 60. -> adjust the std until having a correlation factor > 0.9
+                            else:
+                                mult=self.gaussian(mstep,148,20) #B072, std of 20. -> adjust the std until having a correlation factor > 0.9
+                            signal=int(mult*self.hglevel)
+                            self.logger.info("step="+str(mstep)+", mult="+str(mult)+", signal="+str(signal))
+                            self.lastwvpsignal={}
+                            for wvp in self.lastwvpmeasured: #Generate signals for each wv position:
+                                if wvp==0:
+                                    self.lastwvpsignal[wvp]=deepcopy(signal)
+                                else:
+                                    self.lastwvpsignal[wvp]=0
 
                     #While running an HP routine:
                     elif self.FEL_lamp:
+                        self.logger.info("In FEL measurement")
                         #The signal with depend of the latest motor[9] position, and selected wvp. (only wvp 6 is measured)
-                        mstep=self.Motors_steps[9] #in theory, while doing an HP, it usually vary from 0 to 160.
-                        if mstep>=0: #only if the last mpos is positive: update signal.
-                            mult= self.gaussian(mstep, 88, 50) #gaussian multiplicator factor [0-1]
-                            self.lastwvpsignal={}
-                            for wvp in self.lastwvpmeasured: #Generate signals for each wv position:
-                                if wvp==6:
-                                    self.lastwvpsignal[wvp]=int(mult*self.hplevel)
-                                else:
-                                    self.lastwvpsignal[wvp]=0
+                        mstep=self.Motors[9]['steps_fromled'] #in theory, while doing an HP, it usually vary from 0 to 160, in 10 steps.
+                        signal=self.FEL_signal[mstep]
+                        self.lastwvpsignal={}
+                        for wvp in self.lastwvpmeasured: #Generate signals for each wv position:
+                            if wvp==6:
+                                self.lastwvpsignal[wvp]=int(signal)
+                            else:
+                                self.lastwvpsignal[wvp]=0
 
                     #In general operation:
                     else:
