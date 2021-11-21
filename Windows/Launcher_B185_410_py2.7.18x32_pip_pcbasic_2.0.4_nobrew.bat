@@ -2,6 +2,7 @@
 rem *********************************************************************************************
 rem Example of Launcher for running the Brewer Software into PCBASIC, for brewer instrument number 185, in online mode.
 rem *********************************************************************************************
+
 rem PCBASIC_PATH is the path in which the main.py file of pcbasic is located (if installed with pip, it should be in C:\Python27\Lib\site-packages\pcbasic)
 set PCBASIC_PATH=C:\Python27\Lib\site-packages\pcbasic
 
@@ -40,7 +41,10 @@ rem Set the BREWDIR enviroment variable: where to find the main.asc respect the 
 set BREWDIR=C:\brw#185\Prog410
 
 rem Set the NOBREW enviroment variable: If NOBREW=1 the brewer program will run in offline mode (No COM port communications). Empty = online mode.
-set NOBREW=
+set NOBREW=1
+
+rem Set debug mode: It should be False for regular use. It can be set to True eventually to see what files is pcbasic oppening, or to see the COM port communications.
+set DEBUG_MODE=True
 
 rem Remember to have configured accordingly the OP_ST.FIL and OP_ST.III files of the brewer software.
 rem ****************************************************************************
@@ -55,7 +59,6 @@ set PYTHONPATH=%PYTHONPATH%;%PCBASIC_PATH%
 
 rem get the isodate to write it into the pcbasic log filename
 for /f "delims=" %%a in ('powershell get-date -format "{yyyyMMddTHHmmssZ}"') do set isodate=%%a
-
 rem Change the current path to the Brewer program directory to ensure correct operation (full path)
 cd %BREWDIR%
 
@@ -68,7 +71,7 @@ rem set the date in the OP_ST file before launching the software:
 %PYTHON_DIR%\python.exe %BRWFUNCT_DIR%\Brw_functions.py setdate
 
 rem * Run the Brewer software with PCBASIC
-%PYTHON_DIR%\python.exe -m pcbasic --interface=sdl2 --mount=Z:.,C:%MOUNT_C%,D:%MOUNT_D% --current-device=Z --com1=%COM_PORT_1% --com2=%COM_PORT_2% --run=%PROGRAM% --quit=False -f=10 --shell="python %BRWFUNCT_DIR%\Brw_functions.py" --debug=False --logfile=%LOG_DIR%\pcbasic_brewer_log_%ID%_%isodate%.txt
+%PYTHON_DIR%\python.exe -m pcbasic --interface=graphical --mount=Z:.,C:%MOUNT_C%,D:%MOUNT_D% --current-device=Z --com1=%COM_PORT_1% --com2=%COM_PORT_2% --run=%PROGRAM% --quit=False -f=10 --shell="python %BRWFUNCT_DIR%\Brw_functions.py" --debug=%DEBUG_MODE% --logfile=%LOG_DIR%\pcbasic_brewer_log_%ID%_%isodate%.txt
 
 
 rem * On exit, undo the changes what were done above
