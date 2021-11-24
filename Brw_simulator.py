@@ -25,10 +25,36 @@
 #       "install PortName=COM14 PortName=COM15".
 #       If it does not work, run "list" to list all the bridge devices installed,
 #       and then remove all of them with "remove x" (being x the CNCAx pair), then install the desired pair again.
+#     An alternative to "Com0Com" could be the "Vitual Serial Ports" software from Eltima.
 #
 # 2 - python 2.x (3.x might work, but I have not tested it). Remember to select the option "add python to system path" when installing.
 # 3 - numpy package for python. It can be installed by running "pip install numpy" in a cmd console.
 # 4 - pyserial package for python. It can be installed by running "pip install pyserial" in a cmd console.
+
+#Tested routines:
+# Note: This simulator is only programed to "survive" to the "usual" routines executed in the "usual" schedules.
+# So do not expect to get valid nor successful data in the software while using it with the simulator.
+# Any support to improve the simulator answers will be more than welcome.
+
+#Tested routines for mkii:
+#HG, HP (is skipped in mkii), AZ, UM, TD, AF, B0, B1, B2, AP, RS, SL, AS, CI, CJ, CO, DA, DS, DT, DZ
+
+#Tested routines for mkiii:
+#HG, HP, AZ, TD, AF, B0, B1, B2, AP, RS, SL, AS, CI, CJ, CO, DA, DS, DT, DZ
+
+#Routines that are still not implemented, or that gives problems:
+# ED: I would need to see a pcbasic log file with debug mode enabled to see how to program it.
+# RE: for mkii models, this routine will change the sw-tracker communication baudrate suddenly from 1200 to 300.
+# Depending of the software used to build com port bridge, the simulator might not notice this change of baudrate;
+# With "Com0Com" it works (a null character is received when it happens), but with "Eltima Virtual Serial Port"
+# nothing is received, so there is no way to know when the simulator has to change the baudrate as well.
+# one solution could be to run the CI routine, and set the Q14 to Y temporarily.
+#
+
+#To do:
+# -improve the code of the motor reference positions
+# -Implement detection of routine fingerprint: if the first X commands are coincident with a template, then we could know which routine is being executed in the sw.
+
 
 
 
@@ -62,7 +88,7 @@ class Brewer_simulator:
         self.Init_logger()
 
         #Parameters:
-        self.bmodel ="mkii" #Brewer model, mkiii or mkii
+        self.bmodel ="mkii" #Brewer model, mkiii or mkii. (used to select the hg signal level, and the value of some sensors)
         self.com_port = 'COM15'  # The emulator will be connected to this com port.
         self.com_baudrate = 1200  # It should be the same as in the "Head sensor-tracker connection baudrate" entry of the IOF.
         self.com_timeout = 0.2
@@ -78,24 +104,26 @@ class Brewer_simulator:
         #Motors
         #id=id of the motor
         #steps_fromled = current steps position, from the led detector
-        #zerostep = reference position, steps_fromled in which the motor will end after a reset or initialization
-        #steps_fromzero = steps_fromled - zerostep.
-        self.Motors={0:{"id":""                 ,"steps_fromled":0,"zerostep":0,"steps_fromzero":0},
-                     1:{"id":"Zenith prism"     ,"steps_fromled":0,"zerostep":0,"steps_fromzero":0},
-                     2:{"id":"Azimuth Tracker"  ,"steps_fromled":0,"zerostep":0,"steps_fromzero":0},
-                     3:{"id":"Iris"             ,"steps_fromled":0,"zerostep":0,"steps_fromzero":0},
-                     4:{"id":"Filterwheel 1"    ,"steps_fromled":0,"zerostep":0,"steps_fromzero":0},
-                     5:{"id":"Filterwheel 2"    ,"steps_fromled":0,"zerostep":0,"steps_fromzero":0},
-                     6:{"id":"Filterwheel 3"    ,"steps_fromled":0,"zerostep":0,"steps_fromzero":0},
-                     7:{"id":""                 ,"steps_fromled":0,"zerostep":0,"steps_fromzero":0},
-                     8:{"id":""                 ,"steps_fromled":0,"zerostep":0,"steps_fromzero":0},
-                     9:{"id":"Micrometer 2"     ,"steps_fromled":0,"zerostep":1733,"steps_fromzero":1733},
-                     10:{"id":"Micrometer 1"    ,"steps_fromled":0,"zerostep":1733,"steps_fromzero":1733},
-                     11:{"id":"Slitmask 1"      ,"steps_fromled":0,"zerostep":0,"steps_fromzero":0},
-                     12:{"id":"Slitmask 2"      ,"steps_fromled":0,"zerostep":0,"steps_fromzero":0},
-                     13:{"id":"Zenith Tracker"  ,"steps_fromled":0,"zerostep":0,"steps_fromzero":0},
-                     14:{"id":""                ,"steps_fromled":0,"zerostep":0,"steps_fromzero":0},
-                     15:{"id":""                ,"steps_fromled":0,"zerostep":0,"steps_fromzero":0}
+        #zerostep_ini = it is the MOTOR.ORIGIN[x]: position of step 0 after initialization
+        #zerostep_now = it is MOTOR.ZERO.POS[x], the same as MOTOR.ORIGIN[x] but updated by negative M commands.
+        #steps_fromzero = steps_fromled - zerostep_now.
+        #spd = steps per degree
+        self.Motors={0:{"id":""                 ,"steps_fromled":0,"zerostep_ini":0   ,"zerostep_now":0   ,"steps_fromzero":0},
+                     1:{"id":"Zenith prism"     ,"steps_fromled":0,"zerostep_ini":0   ,"zerostep_now":0   ,"steps_fromzero":0},
+                     2:{"id":"Azimuth Tracker"  ,"steps_fromled":0,"zerostep_ini":0   ,"zerostep_now":0   ,"steps_fromzero":0,"spd":int(14689./360.)},
+                     3:{"id":"Iris"             ,"steps_fromled":0,"zerostep_ini":0   ,"zerostep_now":0   ,"steps_fromzero":0},
+                     4:{"id":"Filterwheel 1"    ,"steps_fromled":0,"zerostep_ini":0   ,"zerostep_now":0   ,"steps_fromzero":0},
+                     5:{"id":"Filterwheel 2"    ,"steps_fromled":0,"zerostep_ini":0   ,"zerostep_now":0   ,"steps_fromzero":0},
+                     6:{"id":"Filterwheel 3"    ,"steps_fromled":0,"zerostep_ini":0   ,"zerostep_now":0   ,"steps_fromzero":0},
+                     7:{"id":""                 ,"steps_fromled":0,"zerostep_ini":0   ,"zerostep_now":0   ,"steps_fromzero":0},
+                     8:{"id":""                 ,"steps_fromled":0,"zerostep_ini":0   ,"zerostep_now":0   ,"steps_fromzero":0},
+                     9:{"id":"Micrometer 2"     ,"steps_fromled":0,"zerostep_ini":1733,"zerostep_now":1733,"steps_fromzero":1733},
+                     10:{"id":"Micrometer 1"    ,"steps_fromled":0,"zerostep_ini":1733,"zerostep_now":1733,"steps_fromzero":1733},
+                     11:{"id":"Slitmask 1"      ,"steps_fromled":0,"zerostep_ini":0   ,"zerostep_now":0   ,"steps_fromzero":0},
+                     12:{"id":"Slitmask 2"      ,"steps_fromled":0,"zerostep_ini":0   ,"zerostep_now":0   ,"steps_fromzero":0},
+                     13:{"id":"Zenith Tracker"  ,"steps_fromled":0,"zerostep_ini":0   ,"zerostep_now":0   ,"steps_fromzero":0},
+                     14:{"id":""                ,"steps_fromled":0,"zerostep_ini":0   ,"zerostep_now":0   ,"steps_fromzero":0},
+                     15:{"id":""                ,"steps_fromled":0,"zerostep_ini":0   ,"zerostep_now":0   ,"steps_fromzero":0}
                      }
 
         self.Rp1=0 #To store the last p1 value of the last R,p1,p2,p3 command
@@ -144,26 +172,28 @@ class Brewer_simulator:
         self.AnalogSensors=deepcopy(self.AnalogSensors_ini) #(will vary depending if the FEL or HG lamp are on/off
         self.curr_baudrate=deepcopy(self.com_baudrate) #It may change temporarily while using re.rtn
         self.onre=False #True while the software is executing a re.rtn routine
-
-        self.Gdict={544:{0:{"id":"Micrometer at position 7 (deadtime)"      ,"status":0},
-                         1:{"id":"Slitmask at position 0 (HG calibration)"  ,"status":0},
-                         2:{"id":"Micrometer at maximum-wavelength position","status":0},
-                         3:{"id":"Micrometer at minimim-wavelength position","status":0},
+        #Gdict: One can see the bit addresses in an old brewer manual.
+        #It is used to answer to the G,544, G800 or G1056 commands, in mkii models, which is to get the status of the end stops or buttons.
+        #(used in az.rtn).
+        self.Gdict={544:{0:{"id":"Micrometer at position 7 (deadtime)"      ,"status":0,"active_low":False},
+                         1:{"id":"Slitmask at position 0 (HG calibration)"  ,"status":0,"active_low":False},
+                         2:{"id":"Micrometer at maximum-wavelength position","status":0,"active_low":False},
+                         3:{"id":"Micrometer at minimim-wavelength position","status":0,"active_low":False},
                          },
-                    800:{0:{"id":"CW switch pressed (Azimuth Tracker)"      ,"status":0},
-                         1:{"id":"CCW switch pressed (Azimuth Tracker)"     ,"status":0},
-                         2:{"id":"CW opto-sensor blocked (Azimuth Tracker)" ,"status":0},
-                         3:{"id":"CCW opto-sensor blocked (Azimuth Tracker)","status":0},
-                         4:{"id":"Zenith-prism pointing dow (active low)"   ,"status":0},
-                         6:{"id":"'Down' switch pressed (Zenith prism)"     ,"status":0},
-                         7:{"id":"'UP' switch pressed (Zenith prism)"       ,"status":0},
+                    800:{0:{"id":"CW switch pressed (Azimuth Tracker) (active low)"   ,"status":1,"active_low":True},
+                         1:{"id":"CCW switch pressed (Azimuth Tracker) (active low)"  ,"status":1,"active_low":True},
+                         2:{"id":"CW opto-sensor blocked (Azimuth Tracker)"           ,"status":0,"active_low":False},
+                         3:{"id":"CCW opto-sensor blocked (Azimuth Tracker)"          ,"status":1,"active_low":False}, #It looks that it is always enabled, I think it is the safety switch, not a secondary opto sensor.
+                         4:{"id":"Zenith-prism pointing down (active low)"            ,"status":1,"active_low":True},
+                         6:{"id":"'Down' switch pressed (Zenith prism)"               ,"status":0,"active_low":False},
+                         7:{"id":"'UP' switch pressed (Zenith prism)"                 ,"status":0,"active_low":False},
                          },
-                    1056:{0:{"id":"Reserved for filterwheels 1 (not used)"    ,"status":0},
-                          1:{"id":"Reserved for filterwheels 2 (not used)"    ,"status":0},
-                          2:{"id":"Reserved for filterwheels 3 (not used)"    ,"status":0},
-                          3:{"id":"Reserved for filterwheels 4 (not used)"    ,"status":0},
-                          4:{"id":"Iris fully closed (active low)"            ,"status":0},
-                          5:{"id":"Iris fully closed (active low)"            ,"status":0},
+                    1056:{0:{"id":"Reserved for filterwheels 1 (not used)"    ,"status":0,"active_low":False},
+                          1:{"id":"Reserved for filterwheels 2 (not used)"    ,"status":0,"active_low":False},
+                          2:{"id":"Reserved for filterwheels 3 (not used)"    ,"status":0,"active_low":False},
+                          3:{"id":"Reserved for filterwheels 4 (not used)"    ,"status":0,"active_low":False},
+                          4:{"id":"Iris fully closed (active low)"            ,"status":0,"active_low":True},
+                          5:{"id":"Iris fully open (active low)"              ,"status":1,"active_low":True},
                           },
                     }
         #FEL signal template, taken from HP routine done in B185)
@@ -232,6 +262,14 @@ class Brewer_simulator:
         #                    datefmt='%H:%M:%S', filemode='w')
 
 
+    def find_between(self,s,first,last):
+        try:
+            start = s.index(first)+len(first)
+            end = s.index(last,start)
+            return s[start:end]
+        except ValueError:
+            return ""
+
     def update_cmds(self):
 
         #Brewer answers
@@ -244,24 +282,30 @@ class Brewer_simulator:
         return np.exp(-np.power(x - mu, 2.) / (2 * np.power(sig, 2.)))
 
     def update_motor_pos(self,m):
-        self.Motors[m]['steps_fromzero']=self.Motors[m]['steps_fromled']-self.Motors[m]['zerostep']
+        self.Motors[m]['steps_fromzero']=self.Motors[m]['steps_fromled']-self.Motors[m]['zerostep_now']
         ss="M"+str(m)+"pos: from_led="+str(self.Motors[m]['steps_fromled'])+\
-           ", from_zero="+str(self.Motors[m]['steps_fromzero'])+", zero="+str(self.Motors[m]['zerostep'])
+           ", from_zero="+str(self.Motors[m]['steps_fromzero'])+", zero="+str(self.Motors[m]['zerostep_now'])
         return ss
 
     def getGstatus(self,address):
         #This function gets a binary code that represent the status of a subset of the instrument sensors.
-        #Then this binary code is converted and returned as a decimal value.
+        #Then this binary code is converted and returned as a decimal value <res>, (integer).
+        #The sensors that are activated are also returned as a <stid>, (list of strings)
         #Address can be 544,800,or 1056 (int). See Gdict for more info.
-        st=np.zeros(8) #8bits
+        st=np.zeros(8,int) #8bits
         stid=[]
         for i in range(len(st)):
             if i in self.Gdict[address]:
                 if self.Gdict[address][i]["status"]: #if status is 1
                     st[i]=1
+                if (self.Gdict[address][i]["status"]==1 and self.Gdict[address][i]["active_low"]==False) or \
+                   (self.Gdict[address][i]["status"]==0 and self.Gdict[address][i]["active_low"]==True):
                     stid.append(self.Gdict[address][i]["id"])
+        #flip the st array: lower bit at the end
+        st=np.flip(st)
         #convert binary value into decimal
-        res=int(str(st),2)
+        res=int(''.join([str(i) for i in st]),2)
+        self.logger.info("getGstatus, address:"+str(address)+", binary value="+str(''.join([str(i) for i in st]))+", integer="+str(res))
         return res,stid
 
 
@@ -382,12 +426,46 @@ class Brewer_simulator:
                     answer=deepcopy(self.lastanswer)
                     gotkey=True
 
-                elif '?MOTOR.CLASS[2]' in line:
-                    self.logger.info('Got keyword: "?MOTOR.CLASS[2]"')
-                    #answer = ['TRACKERMOTOR']+deepcopy(self.BC['brewer_something'])+['wait0.5']+deepcopy(self.BC['brewer_none'])
-                    #answer = ["\r"]+['TRACKERMOTOR'] + deepcopy(self.BC['brewer_something'])
-                    answer = ['wait0.1']+['TRACKERMOTOR']+deepcopy(self.BC['brewer_something'])
+                elif '?MOTOR.CLASS[' in line:
+                    self.logger.info('Got keyword: "?MOTOR.CLASS[x]"')
+                    x=self.find_between(line,"[","]")
+                    if int(x)==2:
+                        answer = ['wait0.1']+['TRACKERMOTOR']+deepcopy(self.BC['brewer_something'])
+                        gotkey = True
+
+                elif '?MOTOR.POS[' in line: #used in AZ.rtn
+                    self.logger.info('Got keyword: ?MOTOR.POS[x]') #Get current position (not sure if from zero, or fromled)
+                    x=self.find_between(line,"[","]")
+                    answer = ['wait0.1']+[str(self.Motors[int(x)]["steps_fromzero"]).rjust(9)]+deepcopy(self.BC['brewer_something']) #is needed to check that the rjust is correct
                     gotkey = True
+
+                elif '?MOTOR.ZERO.POS[' in line: #used in AZ.rtn
+                    self.logger.info('Got keyword: ?MOTOR.ZERO.POS[x]')
+                    x=self.find_between(line,"[","]")
+                    answer = ['wait0.1']+[str(self.Motors[int(x)]["zerostep_now"]).rjust(9)]+deepcopy(self.BC['brewer_something']) #is needed to check that the rjust is correct
+                    gotkey = True
+
+                elif '?MOTOR.ORIGIN[' in line: #used in AZ.rtn
+                    self.logger.info('Got keyword: ?MOTOR.ORIGIN[x]')
+                    x=self.find_between(line,"[","]")
+                    answer = ['wait0.1']+[str(self.Motors[int(x)]["zerostep_ini"]).rjust(9)]+deepcopy(self.BC['brewer_something']) #is needed to check that the rjust is correct
+                    gotkey = True
+
+                elif '?MOTOR.SLOPE[' in line: #used in AZ.rtn
+                    self.logger.info('Got keyword: ?MOTOR.SLOPE[x]')
+                    x=self.find_between(line,"[","]")
+                    answer = ['wait0.1']+[str(self.Motors[int(x)]["spd"]).rjust(9)]+deepcopy(self.BC['brewer_something'])
+                    #Not tested, I think it is to get the steps/degree
+                    #The azimuth steps per turn can be taken from the OP_ST.xxx, row 17; Azimuth steps per revolution
+                    #is needed to check that the rjust is correct
+                    gotkey = True
+
+                elif '?MOTOR.DISCREPANCY[' in line: #used in AZ.rtn
+                    self.logger.info('Got keyword: ?MOTOR.DISCREPANCY[x]')
+                    x=self.find_between(line,"[","]")
+                    answer = ['wait0.1']+[str(0).rjust(9)]+deepcopy(self.BC['brewer_something']) #is needed to check that the rjust is correct
+                    gotkey = True
+
 
                 elif '?TEMP[PMT]' in line:
                     self.logger.info('Got keyworkd: "?TEMP[PMT]"')
@@ -419,10 +497,19 @@ class Brewer_simulator:
                     answer=['wait0.2']+['0.863000']+deepcopy(self.BC['brewer_something'])
                     gotkey = True
 
-                elif '?ANALOG.NOW[20]' in line:
-                    self.logger.info('Got keyworkd: "?ANALOG.NOW[20]"')
-                    answer=['wait0.2']+['309']+deepcopy(self.BC['brewer_something'])
+                elif '?ANALOG.NOW[' in line: #used in AP.rtn
+                    x=self.find_between(line,"[","]")
+                    answer = ['wait0.1']+[str(self.AnalogSensors[int(x)]["value_"+self.bmodel]).rjust(9)]+deepcopy(self.BC['brewer_something']) #is needed to check that the rjust is correct
+                    self.logger.info('Got keyworkd: "?ANALOG.NOW[x]" -> Get sensor reading of: '+self.AnalogSensors[int(x)]["name"])
                     gotkey = True
+
+                elif 'LOGENTRY' in line: #used in ED.rtn
+                    self.logger.info('Got keyworkd: "LOGENTRY"')
+                    answer=['wait0.2']+["All log items reported."]+deepcopy(self.BC['brewer_none'])
+                    gotkey = True
+
+
+
 
             elif ncommas==1:
                 #Turn off all lamps
@@ -498,21 +585,24 @@ class Brewer_simulator:
                         if int(p)==544:
                             self.logger.info('Address 544: Get status of Slit Mask and Micrometer motors.')
                             res,stid=self.getGstatus(int(p))
+                            self.logger.info('Address 544 status= '+str(res))
                             for i in stid:
                                 self.logger.info("Status enabled: "+str(i))
-                            Glistansw+=[res.rjust(4)+","]
+                            Glistansw+=[str(res).rjust(4)+","]
                         elif int(p)==800:
                             self.logger.info('Address 800: Get status of Zen-prism and Az tracker motors.')
                             res,stid=self.getGstatus(int(p))
+                            self.logger.info('Address 800 status= '+str(res))
                             for i in stid:
                                 self.logger.info("Status enabled: "+str(i))
-                            Glistansw+=[res.rjust(4)+","]
+                            Glistansw+=[str(res).rjust(4)+","]
                         elif int(p)==1056:
                             self.logger.info('Address 1056: Get status of Iris and Filterwheel motors.')
                             res,stid=self.getGstatus(int(p))
+                            self.logger.info('Address 1056 status= '+str(res))
                             for i in stid:
                                 self.logger.info("Status enabled: "+str(i))
-                            Glistansw+=[res.rjust(4)+","]
+                            Glistansw+=[str(res).rjust(4)+","]
                         else:
                             self.logger.warning("Unknown G address, p="+str(p))
                             allok=False
@@ -523,11 +613,11 @@ class Brewer_simulator:
 
 
 
-                elif "I," in line: #Initialized the specified motor to its zero position and set the corresponding step up accumulator to 0
+                elif "I," in line: #Initialize the specified motor to its zero position and set the corresponding step up accumulator to 0
                     _,m=line.split(",")
-                    self.Motors[int(m)]['steps_fromled']=deepcopy(self.Motors[int(m)]['zerostep'])
+                    self.Motors[int(m)]['steps_fromled']=deepcopy(self.Motors[int(m)]['zerostep_now'])
                     self.update_motor_pos(int(m))
-                    self.logger.info('Got keyword: "I,m" -> Initialize motor ('+str(m)+'), to its zero position (zerostep='+str(self.Motors[int(m)]['zerostep'])+')')
+                    self.logger.info('Got keyword: "I,m" -> Initialize motor ('+str(m)+'), to its zero position (zerostep_now='+str(self.Motors[int(m)]['zerostep_now'])+')')
                     answer=["wait0.5"]+deepcopy(self.BC['brewer_none'])
                     gotkey = True
 
@@ -549,10 +639,10 @@ class Brewer_simulator:
                     _,m,p=line.split(",")
                     if int(p)<0:
                         self.Motors[int(m)]['steps_fromled']=self.Motors[int(m)]['steps_fromled']+int(p)
-                        self.Motors[int(m)]['zerostep']=deepcopy(self.Motors[int(m)]['steps_fromled'])
+                        self.Motors[int(m)]['zerostep_now']=deepcopy(self.Motors[int(m)]['steps_fromled'])
                         self.logger.info('Got keyworkd: "M,m,-p" -> Move motor '+str(m)+' ('+str(self.Motors[int(m)]['id'])+')'+\
-                                         ' '+str(p)+'steps backwards and set new zerostep ('+\
-                                         str(self.Motors[int(m)]['zerostep']))
+                                         ' '+str(p)+' steps backwards and set new zerostep_now ('+\
+                                         str(self.Motors[int(m)]['zerostep_now'])+')')
                     else:
                         self.Motors[int(m)]['steps_fromled'] =int(p) #Store the last selected position of this motor
                         self.logger.info('Got keyworkd: "M,m,p" -> Move motor '+str(m)+' ('+str(self.Motors[int(m)]['id'])+')'+\
@@ -560,10 +650,39 @@ class Brewer_simulator:
                     ss=self.update_motor_pos(int(m))
                     self.logger.info(ss)
                     #Update Gdict status:
+
+                    #Micrometer
                     if self.Motors[10]["steps_fromled"] in [501,51,67]:
                         self.Gdict[544][2]["status"]=1  #Micrometer at maximum-wavelength position
                     else:
                         self.Gdict[544][2]["status"]=0
+
+                    #Azimuth tracker motor - CW end stop
+                    if self.Motors[2]["steps_fromled"] <= 0:
+                        self.Gdict[800][2]["status"]=1 #Azimuth CW opto sensor blocked
+                    else:
+                        self.Gdict[800][2]["status"]=0
+
+                    #Zenith prism motor - fully closed end stop
+                    if self.Motors[1]["steps_fromled"] == 0: #Zenith prism pointing down
+                        self.Gdict[800][4]["status"]=0 #Zenith prism pointing down (active low)
+                    else:
+                        self.Gdict[800][4]["status"]=1
+
+                    #Iris motor - fully closed end stop
+                    if self.Motors[3]["steps_fromled"] == 0: #iris fully closed
+                        self.Gdict[1056][4]["status"]=0 #Iris fully closed (active low)
+                    else:
+                        self.Gdict[1056][4]["status"]=1
+
+                    #Iris motor - fully opened end stop
+                    if self.Motors[3]["steps_fromled"] == 250: #iris fully open
+                        self.Gdict[1056][5]["status"]=0 #Iris fully open (active low)
+                    else:
+                        self.Gdict[1056][5]["status"]=1
+
+
+
 
                     answer=["wait1.0"]+deepcopy(self.BC['brewer_none'])
                     gotkey = True
@@ -661,18 +780,19 @@ class Brewer_simulator:
                                 else:
                                     self.lastwvpsignal[wvp]=0
 
-                    #While running an HP routine:
+                    #While FEL lamp is on:
                     elif self.FEL_lamp:
                         self.logger.info("In FEL measurement")
                         self.lastwvpsignal={}
-                        if "R,0,7,1" in line: #SL.rtn -> initial quick scan over all wvp
+                        if "R,0,7," in line: #SL.rtn (R,0,7,1) or RS.rtn (R,0,7,5) -> initial quick scan over all wvp
+                            _,_,_,mult=line.split(",")
                             signals=[3747,0,35927,40439,45369,40758,32717,79062]
-                            self.lastwvpsignal={self.lastwvpmeasured[i]:signals[i] for i in self.lastwvpmeasured}
+                            self.lastwvpsignal={self.lastwvpmeasured[i]:signals[i]*int(mult) for i in self.lastwvpmeasured}
                         elif "R,0,6,20" in line: #SL.rtn -> measurements
                             signals=[77444,7,746834,840075,939058,846241,678921]
                             #self.lastwvpsignal={self.lastwvpmeasured[i]:signals[i]+int(10*rand()) for i in self.lastwvpmeasured}
                             self.lastwvpsignal={self.lastwvpmeasured[i]:signals[i] for i in self.lastwvpmeasured}
-                        else: #HP routine
+                        elif "R,6,6,4" in line: #HP.rtn
                             #The signal with depend of the latest motor[9] position, and selected wvp. (only wvp 6 is measured)
                             mstep=self.Motors[9]['steps_fromled'] #in theory, while doing an HP, it usually vary from 0 to 160, in 10 steps.
                             signal=self.FEL_signal[mstep]
@@ -681,6 +801,14 @@ class Brewer_simulator:
                                     self.lastwvpsignal[wvp]=int(signal)
                                 else:
                                     self.lastwvpsignal[wvp]=0
+                        else: #For any other case, like RS.rtn, Generate random signals for each wv position:
+                            for wvp in self.lastwvpmeasured:
+                                if wvp==1:
+                                    signal=5+int(10*rand())
+                                    self.lastwvpsignal[wvp]=int(signal)
+                                else:
+                                    signal=1000+int(100*rand())
+                                    self.lastwvpsignal[wvp]=int(signal)
 
                     #In general operation:
                     else:
@@ -723,6 +851,11 @@ class Brewer_simulator:
                     self.lastL=[int(a),int(b),int(c),int(d)]
                     self.logger.info('Got keyword: "L,a,b,c,d"')
                     answer = ["wait1.0"]+deepcopy(self.BC['brewer_none'])
+                    gotkey = True
+
+                elif '!TIME' in line: #Used in TD.rtn
+                    self.logger.info('Got keyworkd: "!TIME year, day, hour, min, sec"')
+                    answer=['wait0.2']+deepcopy(self.BC['brewer_none'])
                     gotkey = True
 
             elif ncommas==8: #L,16811,5,16812,79,16813,3,16814,255:Z
@@ -801,45 +934,43 @@ class Brewer_simulator:
                             #line = sio.readline()
                             fullline=''
                             c=''
-                            while (c != '\r') and (fullline != '\x00'):
+                            while (c != '\r'):
                                 c=sw.read(1)
                                 if python_version[0]>2:
                                     c=c.decode("latin1") #Convert received bytes into str
                                 fullline += c
-                            if not fullline:
-                                time.sleep(0.001)
-                                continue
-                            else:
-                                time.sleep(0.01) #This was needed to prevent waiting for midnight messages in hp routine
-                                self.logger.info('Command received: '+str(fullline).replace('\r','\\r').replace('\n','\\n').replace('\x00','\\x00'))
-                                gotkey, answer = self.check_line(fullline)
-                                if gotkey:
-                                    if sw.baudrate != self.curr_baudrate:
-                                        self.logger.info('Changing baudrate to '+str(self.curr_baudrate))
-                                        sw.baudrate=deepcopy(self.curr_baudrate)
+                                if fullline == '\x00':
+                                    break #Exit while loop
+                            time.sleep(0.01) #Minimum process time
+                            self.logger.info('Command received: '+str(fullline).replace('\r','\\r').replace('\n','\\n').replace('\x00','\\x00'))
+                            gotkey, answer = self.check_line(fullline)
+                            if gotkey:
+                                if sw.baudrate != self.curr_baudrate:
+                                    self.logger.info('Changing baudrate to '+str(self.curr_baudrate))
+                                    sw.baudrate=deepcopy(self.curr_baudrate)
 
-                                    self.logger.info('Writing answer to com port:'+str(answer))
+                                self.logger.info('Writing answer to com port:'+str(answer))
 
-                                    if len(answer)==0:
-                                        self.logger.warning('len(answer)==0!!!!')
-                                    for a in answer:
-                                        if 'wait' in a:
-                                            time.sleep(float(a.split('wait')[1]))
-                                        elif 'flush' in a:
-                                            #sio.flush()
-                                            sw.flush()
-                                        else:
-                                            try:
-                                                if python_version[0]>2:
-                                                    sw.write(a.encode("latin1")) #convert str to bytes
-                                                else:
-                                                    sw.write(a)
-                                            except Exception as e:
-                                                self.logger.error("Cannot write into serial")
-                                    self.logger.info('--------------------------')
+                                if len(answer)==0:
+                                    self.logger.warning('len(answer)==0!!!!')
+                                for a in answer:
+                                    if 'wait' in a:
+                                        time.sleep(float(a.split('wait')[1]))
+                                    elif 'flush' in a:
+                                        #sio.flush()
+                                        sw.flush()
+                                    else:
+                                        try:
+                                            if python_version[0]>2:
+                                                sw.write(a.encode("latin1")) #convert str to bytes
+                                            else:
+                                                sw.write(a)
+                                        except Exception as e:
+                                            self.logger.error("Cannot write into serial")
+                            self.logger.info('--------------------------')
 
                         except ValueError:
-                            logl="Could not parse line {}, skipping".format(fullline)
+                            logl="Could not parse line {}, skipping".format(fullline.replace('\r','\\r').replace('\n','\\n').replace('\x00','\\x00'))
                             self.logger.warning(logl)
                             warnings.warn(logl)
                         except KeyboardInterrupt:
