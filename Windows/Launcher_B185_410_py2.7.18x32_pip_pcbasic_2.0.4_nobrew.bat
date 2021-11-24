@@ -1,4 +1,5 @@
 @echo off
+title %~nx0
 rem *********************************************************************************************
 rem Example of Launcher for running the Brewer Software into PCBASIC, for brewer instrument number 185, in online mode.
 rem *********************************************************************************************

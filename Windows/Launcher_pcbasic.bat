@@ -1,5 +1,5 @@
 @echo off
-
+title %~nx0
 rem PCBASIC Launcher
 
 setlocal
