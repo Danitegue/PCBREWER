@@ -105,7 +105,7 @@ Principal collaborators: Alberto Redondas Marrero, Juan Javier Lopez Solano, Ser
 * Most of the problems can be identified by reading the PCBASIC session log file (by default in C:\Temp\pcbasic_brewer_log_instrumentnumber_date.txt). 
 * By setting in the launcher the option --debug=True, more information will be written in the PCBASIC session log file. This information can give you a clue of what is wrong. 
 
-**The shell commands are not working as they should:**
+**The SHELL commands of the gwbasic code are not working as they should:**
 * By setting in the launcher the option --debug=True, more information will be written in the PCBASIC session log file. This information can give you a clue of what is wrong. 
 Note: only the shell commands of the "official" brewer versions (v3.75, v3.77 and v4.10) have been inplemented in Brw_functions.py. 
 If you have custom SHELL commands, Brw_functions.py must be adapted accordingly.
