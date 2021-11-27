@@ -51,7 +51,7 @@ Principal collaborators: Alberto Redondas Marrero, Juan Javier Lopez Solano, Ser
 
 - **2 - Install Python:**
 
-  I personally have tested pcbasic with two versions of python: 
+  I personally have tested pcbasic with the following versions of python: 
   - 2.7.18 32bits (the latest 2.x version of python) -> Installer here: https://www.python.org/downloads/release/python-2718/
   - 3.8.10 32bits (the latest 3.x version that is compatible with win7. In theory is not compatible with win xp) -> Installer here https://www.python.org/downloads/release/python-3810/
 
@@ -63,7 +63,6 @@ Principal collaborators: Alberto Redondas Marrero, Juan Javier Lopez Solano, Ser
 
 
 - **3 - Install PCBASIC:**
-
 
   PCBASIC can be installed as any other python module. In a system console, write: 
   ```
@@ -85,6 +84,8 @@ Principal collaborators: Alberto Redondas Marrero, Juan Javier Lopez Solano, Ser
   ```
   Note: If you are going to use PCBASIC in a windows pc, it is recommendable to download the content of this repository from a windows pc. Otherwise the carriage return characters might be automatically replaced to the respective OS default.
 
+
+
 ## Running instructions
 * Check that the pcbasic works alone (without loading any software on it), by running the launcher "Launcher_pcbasic".
 
@@ -98,12 +99,17 @@ Principal collaborators: Alberto Redondas Marrero, Juan Javier Lopez Solano, Ser
 **The "Launcher_pcbasic" is not working:**
 * Ensure that you have selected the option "add python to the enviroment variables" option while installing python. Alternatively, you could run pcbasic from a cmd console: navigate to the python installation folder, and run "python.exe -m pcbasic"
 
-
 **The shell console opened by the launchers is closed suddenly:**
 * Open a windows/linux console, and run the launcher from it, instead of double clicking in the launcher. This console won't be closed when the program crash, so you will be able to see what is the problem.
 * Ensure that the folder set in the launchers to store the PCBASIC session log file exists (by default in LOG_DIR=C:\Temp\). Otherwise PCBASIC won't run.
 * Most of the problems can be identified by reading the PCBASIC session log file (by default in C:\Temp\pcbasic_brewer_log_instrumentnumber_date.txt). 
-* By setting in the launcher the option --debug=True, it will be written more information in the PCBASIC session log file, which can give you an idea of what can be running wrong. (Like if the shell commands sent through the Brw_functions.py could be executed properly or not)
+* By setting in the launcher the option --debug=True, more information will be written in the PCBASIC session log file. This information can give you a clue of what is wrong. 
+
+**The shell commands are not working as they should:**
+* By setting in the launcher the option --debug=True, more information will be written in the PCBASIC session log file. This information can give you a clue of what is wrong. 
+Note: only the shell commands of the "official" brewer versions (v3.75, v3.77 and v4.10) have been inplemented in Brw_functions.py. 
+If you have custom SHELL commands, Brw_functions.py must be adapted accordingly.
+
 
 
 
