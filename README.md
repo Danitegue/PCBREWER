@@ -69,20 +69,25 @@ Principal collaborators: Alberto Redondas Marrero, Juan Javier Lopez Solano, Ser
   ```
   pip install pcbasic==
   ```
-  this will list all available versions.  The last functional version that I have tested is v2.0.4. Newer versions might work, but I have not tested them. 
+  this commnad will give an error, but this error can be used to know which pcbasic versions are available to install:  
+  
+  ![image](https://user-images.githubusercontent.com/25931032/143690641-d8f110cb-f337-4a60-89d0-1b44132e177c.png)
+
+  The last functional version that I have tested is v2.0.4. Newer versions might work, but I have not tested them. 
   To install this specific version, write:
     
   ```
   pip install pcbasic==2.0.4
   ```
   Note: In the case of having python3, use "pip3" instead of "pip"
-  Note2: If you have a previous version of pcbasic installed by "pip", is recommendable to uninstall it by running "pip uninstall pcbasic"
+  
+  Note2: If you have a previous version of pcbasic installed by "pip", is recommendable to uninstall it before installing the new one. You can uninstall pcbasic by running "pip uninstall pcbasic"
   
   In the case of having python 2 installed in "C:\Python27", this command will install pcbasic in "C:\Python27\Lib\site-packages\pcbasic"
 
 
 
-- **4 - Download this repository (or the launchers):**
+- **4 - Download this repository:**
 
   [Download](https://github.com/Danitegue/PCBREWER/archive/master.zip) all the contents of this repository to your PC, and unzip the contents. 
   Alternatively, if you have git installed, you can open a cmd console, navigate to the desired location (for example "C:\\"), and clone the repositorty to your pc with:
@@ -96,7 +101,7 @@ Principal collaborators: Alberto Redondas Marrero, Juan Javier Lopez Solano, Ser
 ## Running instructions
 * Check that the pcbasic works alone (without loading any software on it), by running the launcher "Launcher_pcbasic".
 
-* Make a copy of the desired brewer launcher (Windows or Linux, online or offline), and configure it accordingly to your system paths, com ports, and brewer software location. 
+* Make a copy of the desired brewer launcher (Windows or Linux, online or offline), and configure it accordingly to your system paths, com ports, and brewer software location. The launchers have a lot of commentaries to facilitate this step.
 
 * Run the configured brewer launcher.
 
