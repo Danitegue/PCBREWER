@@ -64,7 +64,14 @@ Principal collaborators: Alberto Redondas Marrero, Juan Javier Lopez Solano, Ser
 
 - **3 - Install PCBASIC:**
 
-  PCBASIC can be installed as any other python module. In a system console, write: 
+  PCBASIC can be installed as any other python module. To know which versions of pcbasic are available, write the following in a system console: 
+  
+  ```
+  pip install pcbasic==
+  ```
+  this will list all available versions.  The last functional version that I have tested is v2.0.4. Newer versions might work, but I have not tested them. 
+  To install this specific version, write:
+    
   ```
   pip install pcbasic==2.0.4
   ```
