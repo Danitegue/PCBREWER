@@ -37,14 +37,14 @@
 # Any support to improve the simulator answers will be more than welcome.
 
 #Tested routines for mkii:
-#HG, HP (is skipped in mkii), AZ, UM, TD, AF, B0, B1, B2, AP, RS, SL, AS, CI, CJ, CO, DA, DS, DT, DZ
+#HG, HP (is skipped in mkii), AZ, UM, TD, AF, B0, B1, B2, AP, RS, SL, AS, CI, CJ, CO, DA, DS, DT, DZ, SR, ED
 
 #Tested routines for mkiii:
-#HG, HP, AZ, TD, AF, B0, B1, B2, AP, RS, SL, AS, CI, CJ, CO, DA, DS, DT, DZ
+#HG, HP, AZ, TD, AF, B0, B1, B2, AP, RS, SL, AS, CI, CJ, CO, DA, DS, DT, DZ, SR
 
 #Routines that are still not implemented, or that gives problems:
-# ED: I would need to see a pcbasic log file with debug mode enabled to see how to program it.
-# RE: for mkii models, this routine will change the sw-tracker communication baudrate suddenly from 1200 to 300.
+# ED (for mkiii): I would need to see a pcbasic log file with debug mode enabled to see how to program it.
+# RE (for mkii): this routine will change the sw-tracker communication baudrate suddenly from 1200 to 300.
 # Depending of the software used to build com port bridge, the simulator might not notice this change of baudrate;
 # With "Com0Com" it works (a null character is received when it happens), but with "Eltima Virtual Serial Port"
 # nothing is received, so there is no way to know when the simulator has to change the baudrate as well.
@@ -53,7 +53,7 @@
 
 #To do:
 # -improve the code of the motor reference positions
-# -Implement detection of routine fingerprint: if the first X commands are coincident with a template, then we could know which routine is being executed in the sw.
+# -Implement detection of routine fingerprint: if the last X commands received are coincident with a template, then we could know which routine is being executed in the sw.
 
 
 
@@ -88,11 +88,12 @@ class Brewer_simulator:
         self.Init_logger()
 
         #Parameters:
-        self.bmodel ="mkii" #Brewer model, mkiii or mkii. (used to select the hg signal level, and the value of some sensors)
+        self.bmodel ="mkiii" #Brewer model, mkiii or mkii. (used to select the hg peak signal level, hg peak width, and the value of some sensors)
         self.com_port = 'COM15'  # The emulator will be connected to this com port.
         self.com_baudrate = 1200  # It should be the same as in the "Head sensor-tracker connection baudrate" entry of the IOF.
         self.com_timeout = 0.2
         self.IOS_board = False # Set this to true if Q16%==2. You can see this in bdata\NNN\OP_ST.NNN, line 28, or through IC routine (ctrl+end to quit)
+        self.spr = 14664 #number of steps per azimuth tracker revolution
         #if IOS_board is False, the communication with the tracker while doing a re.rtn is done temporarily a 300bps.
 
         #initial update of commands
@@ -110,7 +111,7 @@ class Brewer_simulator:
         #spd = steps per degree
         self.Motors={0:{"id":""                 ,"steps_fromled":0,"zerostep_ini":0   ,"zerostep_now":0   ,"steps_fromzero":0},
                      1:{"id":"Zenith prism"     ,"steps_fromled":0,"zerostep_ini":0   ,"zerostep_now":0   ,"steps_fromzero":0},
-                     2:{"id":"Azimuth Tracker"  ,"steps_fromled":0,"zerostep_ini":0   ,"zerostep_now":0   ,"steps_fromzero":0,"spd":int(14689./360.)},
+                     2:{"id":"Azimuth Tracker"  ,"steps_fromled":0,"zerostep_ini":0   ,"zerostep_now":0   ,"steps_fromzero":0,"spd":int(self.spr/360.)},
                      3:{"id":"Iris"             ,"steps_fromled":0,"zerostep_ini":0   ,"zerostep_now":0   ,"steps_fromzero":0},
                      4:{"id":"Filterwheel 1"    ,"steps_fromled":0,"zerostep_ini":0   ,"zerostep_now":0   ,"steps_fromzero":0},
                      5:{"id":"Filterwheel 2"    ,"steps_fromled":0,"zerostep_ini":0   ,"zerostep_now":0   ,"steps_fromzero":0},
@@ -466,6 +467,12 @@ class Brewer_simulator:
                     answer = ['wait0.1']+[str(0).rjust(9)]+deepcopy(self.BC['brewer_something']) #is needed to check that the rjust is correct
                     gotkey = True
 
+                elif 'STEPS' in line: #used in sr.rtn
+                    #The number of steps ina complete revolution of the azimuth tracker
+                    self.logger.info('Got keyword: STEPS')
+                    answer = ['wait0.1']+[str(self.spr).rjust(9)]+deepcopy(self.BC['brewer_something']) #is needed to check that the rjust is correct
+                    gotkey = True
+
 
                 elif '?TEMP[PMT]' in line:
                     self.logger.info('Got keyworkd: "?TEMP[PMT]"')
@@ -660,6 +667,8 @@ class Brewer_simulator:
                     #Azimuth tracker motor - CW end stop
                     if self.Motors[2]["steps_fromled"] <= 0:
                         self.Gdict[800][2]["status"]=1 #Azimuth CW opto sensor blocked
+                    elif self.Motors[2]["steps_fromled"]>=self.spr-400 and self.Motors[2]["steps_fromled"]<=self.spr:
+                        self.Gdict[800][2]["status"]=1 #Azimuth CW opto sensor blocked (needed for sr.rtn)
                     else:
                         self.Gdict[800][2]["status"]=0
 
