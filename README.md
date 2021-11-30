@@ -58,6 +58,7 @@ Principal collaborators: Alberto Redondas Marrero, Juan Javier Lopez Solano, Ser
   Newer versions of python might work, but I have not tested them.
 
   Note: If your instrument is part of EUBREWNET, and you are using the script "refresh.py" to upload data to the network servers, you have to be sure that the version of refresh.py you have is compatible with the version of python that you are installing (there is a new version for python3).
+  
   Note2: Don't forget to select the option "Add python to system path" when installing python.
 
 
