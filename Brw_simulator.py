@@ -5,10 +5,6 @@
 
 # This script can be used to simulate the COM port answers of a Brewer Instrument.
 # It is useful to know what the software is requesting to do to the Brewer, and also to know what a real Brewer would answer.
-#
-# the easiest way to run this program is creating a .bat file, with the following content:
-# "python Brw_simulator.py"
-# and then run directly it by double click on it.
 
 #Requirements:
 # 1 - A Bridge of virtual com ports:
@@ -31,16 +27,21 @@
 # 3 - numpy package for python. It can be installed by running "pip install numpy" in a cmd console.
 # 4 - pyserial package for python. It can be installed by running "pip install pyserial" in a cmd console.
 
+# Usage:
+#   1 - Set the parameters section (At least paths and com port to be used).
+#   2 - Run this script. the easiest way to run this program is creating a .bat file, with the following content:
+#    "python Brw_simulator.py"
+#    and then run directly it by double click on it.
+
+
 #Tested routines:
-# Note: This simulator is only programed to "survive" to the "usual" routines executed in the "usual" schedules.
-# So do not expect to get valid nor successful data in the software while using it with the simulator.
-# Any support to improve the simulator answers will be more than welcome.
-
-#Tested routines for mkii:
-#HG, HP (is skipped in mkii), AZ, UM, TD, AF, B0, B1, B2, AP, RS, SL, AS, CI, CJ, CO, DA, DS, DT, DZ, SR, ED
-
-#Tested routines for mkiii:
-#HG, HP, AZ, TD, AF, B0, B1, B2, AP, RS, SL, AS, CI, CJ, CO, DA, DS, DT, DZ, SR
+#  Note: This simulator is only programed to "survive" to the "usual" routines executed in the "usual" schedules.
+#  So do not expect to get valid nor successful data in the software while using it with the simulator.
+#  Any support to improve the simulator answers will be more than welcome.
+#  Tested routines for mkii:
+#    HG, HP (is skipped in mkii), AZ, UM, TD, AF, B0, B1, B2, AP, RS, SL, AS, CI, CJ, CO, DA, DS, DT, DZ, SR, ED
+#  Tested routines for mkiii:
+#    HG, HP, AZ, TD, AF, B0, B1, B2, AP, RS, SL, AS, CI, CJ, CO, DA, DS, DT, DZ, SR
 
 #Routines that are still not implemented, or that gives problems:
 # ED (for mkiii): I would need to see a pcbasic log file with debug mode enabled to see how to program it.
@@ -85,9 +86,6 @@ class Brewer_simulator:
         # Parameters:
         isodate=datetime.datetime.now().strftime("%Y%m%dT%H%M%SZ")
         self.logfile = "C:/Temp/Brw_simulator_"+isodate+".txt"
-        self.Init_logger()
-
-        #Parameters:
         self.bmodel ="mkiii" #Brewer model, mkiii or mkii. (used to select the hg peak signal level, hg peak width, and the value of some sensors)
         self.com_port = 'COM15'  # The emulator will be connected to this com port.
         self.com_baudrate = 1200  # It should be the same as in the "Head sensor-tracker connection baudrate" entry of the IOF.
@@ -216,18 +214,28 @@ class Brewer_simulator:
                      150:152167,
                      160:102135
                      }
-        FEL_values=np.array(FEL_template.values(),dtype=float)
+        FEL_values=np.array([float(i) for i in FEL_template.values()])
         FEL_values_norm=FEL_values/FEL_values.max() #Normalize the values of the template between 0-1
         FEL_values_adj=FEL_values_norm*self.hplevel #adjust the FEL signal to the desired self.hplevel
         self.FEL_signal=dict(zip(FEL_template.keys(),FEL_values_adj)) #Build FEL signal dictionary
 
+
         #--------------------------------------------------------
+        self.getargs() #Replace parameters by arguments (if given)
+        self.Init_logger()
         self.logger.info('Simulating brewer model: '+str(self.bmodel))
 
 
 
 
     #------------------
+
+    def getargs(self):
+        ini_arguments=sys.argv[1:]
+        if len(ini_arguments)>0: #first argument define the com port to be used
+            self.com_port=ini_arguments[0]
+        if len(ini_arguments)>1: #second argument define the filepath of the log file
+            self.logfile=ini_arguments[1]
 
     def Init_logger(self):
         # ----Initialize the logger---
