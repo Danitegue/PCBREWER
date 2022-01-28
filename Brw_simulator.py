@@ -23,6 +23,8 @@
 #       and then remove all of them with "remove x" (being x the CNCAx pair), then install the desired pair again.
 #     An alternative to "Com0Com" could be the "Vitual Serial Ports" software from Eltima.
 #
+#     For Linux: look for tty0tty project (https://github.com/freemed/tty0tty)
+#
 # 2 - python 2.x (3.x might work, but I have not tested it). Remember to select the option "add python to system path" when installing.
 # 3 - numpy package for python. It can be installed by running "pip install numpy" in a cmd console.
 # 4 - pyserial package for python. It can be installed by running "pip install pyserial" in a cmd console.
@@ -45,12 +47,13 @@
 
 #Routines that are still not implemented, or that gives problems:
 # ED (for mkiii): I would need to see a pcbasic log file with debug mode enabled to see how to program it.
-# RE (for mkii): this routine will change the sw-tracker communication baudrate suddenly from 1200 to 300.
-# Depending of the software used to build com port bridge, the simulator might not notice this change of baudrate;
-# With "Com0Com" it works (a null character is received when it happens), but with "Eltima Virtual Serial Port"
+# RE (for mkii): this routine will send a break character after changing the baudrate from 1200 to 300bps.
+# Depending of the software used to build com port bridge, the simulator might notice or not the break signal;
+# With "Com0Com" it works (a null character is received when it happens), but with "Eltima Virtual Serial Port" or "tty0tty" (linux)
 # nothing is received, so there is no way to know when the simulator has to change the baudrate as well.
-# one solution could be to run the CI routine, and set the Q14 to Y temporarily.
-#
+# one temporal solution is to add a signal manually in the re-mb.rtn file:
+# 13091 IF Q16%=0 THEN O1$="NULL":GOSUB 9450
+# this will send the "NULL" string through the serial port, which is then recognized by the simulator.
 
 #To do:
 # -improve the code of the motor reference positions
@@ -73,6 +76,7 @@ from copy import deepcopy
 from random import random as rand
 import platform
 import datetime
+import os
 
 try:
     python_version=[int(i) for i in platform.python_version_tuple()] #For example [2,8,17]
@@ -85,9 +89,14 @@ class Brewer_simulator:
     def __init__(self):
         # Parameters:
         isodate=datetime.datetime.now().strftime("%Y%m%dT%H%M%SZ")
-        self.logfile = "C:/Temp/Brw_simulator_"+isodate+".txt"
-        self.bmodel ="mkiii" #Brewer model, mkiii or mkii. (used to select the hg peak signal level, hg peak width, and the value of some sensors)
-        self.com_port = 'COM15'  # The emulator will be connected to this com port.
+
+        self.bmodel ="mkii" #Brewer model, mkiii or mkii. (used to select the hg peak signal level, hg peak width, and the value of some sensors)
+        if os.name == 'nt': #If using Windows
+            self.com_port = 'COM15'  # The emulator will be connected to this com port.
+            self.logfile = "C:/Temp/Brw_simulator_log_"+isodate+".txt"
+        else: #If using Linux:
+            self.com_port = '/dev/tnt1'
+            self.logfile = "/home/danitegue/Temp/Brw_simulator_"+isodate+".txt"
         self.com_baudrate = 1200  # It should be the same as in the "Head sensor-tracker connection baudrate" entry of the IOF.
         self.com_timeout = 0.2
         self.IOS_board = False # Set this to true if Q16%==2. You can see this in bdata\NNN\OP_ST.NNN, line 28, or through IC routine (ctrl+end to quit)
@@ -371,7 +380,13 @@ class Brewer_simulator:
                 #     answer = deepcopy(self.BC['brewer_none'])
                 #     gotkey = True
 
-                elif line=='\x00': #null character, as when it start running re.rtn with non IOS board
+                elif ((line=='\x00') or (line=='NULL')): #null character, as the re.rtn does with non IOS board (mkii)
+                    #Note, depending of the sw used to create the com port bridge,
+                    # a null character might not be received when the brewer software
+                    # changes the baudrate from 1200 to 300bps.
+                    # In this case, we could force the brewer software to write a signal to know when is it happening:
+                    # in re-mb, add the line:
+                    # 13091 IF Q16%=0 THEN O1$="NULL":GOSUB 9450
                     self.logger.info('Got keyworkd: "Null"')
                     if not self.onre:
                         self.onre=True #first time passing here: start of re.rtn
@@ -951,13 +966,13 @@ class Brewer_simulator:
                             #line = sio.readline()
                             fullline=''
                             c=''
-                            while (c != '\r'):
+                            while (c != '\r'): #while2
                                 c=sw.read(1)
                                 if python_version[0]>2:
                                     c=c.decode("latin1") #Convert received bytes into str
                                 fullline += c
-                                if fullline == '\x00':
-                                    break #Exit while loop
+                                if (fullline == '\x00') or (fullline == 'NULL'):
+                                    break #Exit while2 loop
                             time.sleep(0.01) #Minimum process time
                             self.logger.info('Command received: '+str(fullline).replace('\r','\\r').replace('\n','\\n').replace('\x00','\\x00'))
                             gotkey, answer = self.check_line(fullline)
