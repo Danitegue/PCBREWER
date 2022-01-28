@@ -1,0 +1,107 @@
+
+
+////////////// PCBASIC - LINUX INSTRUCTIONS ////////////////////
+
+The main problem of running the brewer software in linux, is that Linux is a case sensitive operative system.
+So, for example, in Linux, OP_ST.FIL and op_st.fil are two different files and can coexist in the same folder.
+Also two folder names with different capitalization, are considered two different folders.
+
+It is very important to have this into account, when filling the launcher paths.
+PCBASIC interpreter is already prepared to look for files with similar capitalization when a specific file is not found.
+(files with same names but different capitalization).
+Brw_functions has been also updated, in order to do the same when handling the SHELL commands.
+In the included example launchers, the function "look4duplicates" of Brw_functions is run when the launcher is executed,
+to check that there are not "duplicated" files in the brewer software program folder. (=files with same names but
+different capitalization).
+If you have customized routines with customized SHELL commands, it is recommended to check for warnings in the
+Brw_functions log file, to ensure no "duplicated" files are created in the brewer program folder.
+
+Steps to run the brewer software on linux:
+
+1 - You will need to have already installed a copy of the Brewer software.
+    You can download the latest versions from here: http://www.io3.ca/index.php?id=1050.
+    for the moment only v4.10 has been tested with pcbasic in linux.
+    I would recommend saving it in /home/<username>/, for example: /home/danitegue/brw#072
+
+2 - Install python. (It usually comes pre-installed in linux, /usr/bin/python3).
+    I have tested pcbasic in linux with python 3.8 64bit, but other versions might work.
+
+3 - Install all the needed python modules to run pcbasic from sourcecode:
+    https://github.com/robhagemans/pcbasic/blob/master/HACKING.md
+    pip3 install pcbasic pyserial
+
+4 - Install the graphical libraries:
+    In theory pygame is not going to be supported anymore by pcbasic, so is better to install the sdl2 library
+    https://lazyfoo.net/tutorials/SDL/01_hello_SDL/linux/index.php
+
+5 - If you are going to use the com ports, (as usual), ensure your linux user has rights to open and write the needed com ports.
+    https://unix.stackexchange.com/questions/14354/read-write-to-a-serial-port-without-root
+
+6 - Clone or download the PCBREWER repository, for example into /home/<username>/
+    git clone https://github.com/Danitegue/PCBREWER
+
+    then make a copy of the desired launcher of the PCBREWER/Linux folder, and adjust the paths of the launcher.
+    The launchers are self explicative. Please keep special attention to the capitalization of the paths.
+    Finally, give execution rights to the launcher. (Right button click > properties > permissions > "allow to execute file as program")
+
+    To run the launcher, just run in a console
+    bash Launchername.sh
+
+
+------------------Brw_simulator-----------------
+In the case you want to use the Brw_simulator, here some instructions:
+
+1-Install the needed python modules:
+pip3 install numpy pyserial
+
+2-Create a Bridge of com ports:
+
+OPTION A) using tty0tty
+The official instructions here: https://github.com/freemed/tty0tty
+Summary:
+
+cd tty0tty-1.2/module
+make
+sudo cp tty0tty.ko /lib/modules/$(uname -r)/kernel/drivers/misc/
+sudo depmod
+sudo modprobe tty0tty
+sudo chmod 666 /dev/tnt* (change the file access rights)
+
+To list all com devices:
+ls -l /dev/tnt*
+or
+ls /dev/tty*
+
+At this point, you will see 8 tnt ports:
+by default /dev/tnt0 and /dev/tnt1 are interconnected. (and 2&3, 4&5, 6&7)
+So you could use /dev/tnt0 for the brewer software launcher, and /dev/tnt1 for the brewer simulator.
+
+Note: I had to apply this fix to be able to solve the "make" command: https://github.com/freemed/tty0tty/issues/39
+change 268 line (261 in my case): static int tty0tty_write_room(struct tty_struct *tty)
+
+Note2: I had to apply this for not losing the file access rights of the tnt* ports after every restart
+https://superuser.com/questions/431843/configure-permissions-for-dev-ttyusb0
+
+Note3: It might be needed to re-install tty0tty after every linux core update.
+
+OPTION B) using socat: -> I have not been able to make it work.
+See all available ttyS* ports with command "ls /dev/ttyS*"
+link two ttyS* ports with this socat, for example:
+
+"socat PTY,link=/dev/ttyS14 PTY,link=/dev/ttyS15 & disown"
+
+this will bind each /dev/ttySX port to a /dev/pts/Y port, and will create a bridge between the pts ports.
+if you run the command "ls -l /dev/ttyS*", you will see to wich pts port is binded each tty port, for example:
+lrwxrwxrwx 1 root root       10 dic 17 20:30 /dev/ttyS14 -> /dev/pts/6
+lrwxrwxrwx 1 root root       10 dic 17 20:30 /dev/ttyS15 -> /dev/pts/7
+
+Finally, give writting rights to each one of the used ttyS* ports, for example:
+sudo chmod o+rw /dev/ttyS14
+sudo chmod o+rw /dev/ttyS15
+
+Note: I think the reason socat does not work is because it cannot handle special signals that are used in the serial communications,
+such as break or nulls, and, because one cannot change the ownership of the bridge port from root.
+
+3 - Run the brewer simulator launcher
+from a console, run:
+bash Launcher_brewer_simulator.sh
